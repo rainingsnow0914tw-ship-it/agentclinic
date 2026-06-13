@@ -28,7 +28,10 @@ import requests
 
 from .base import CoachResult
 
-DEFAULT_MODEL = "gpt-4o-mini-2024-07-18"
+DEFAULT_MODEL = "gpt-5.4-2026-03-05"
+# Fallback chain for EU data residency limits: staging tenant blocks
+# gpt-5.5 / gemini-3 / claude-4 with HTTP 417. gpt-5.4 / gpt-4.1 / gpt-4o
+# verified working as of 2026-06-13. Override via UIPATH_LLM_MODEL.
 DEFAULT_TIMEOUT = 30.0
 _EARLY_REFRESH_SECONDS = 60
 
