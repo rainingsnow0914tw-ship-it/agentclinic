@@ -89,7 +89,7 @@ AgentClinic 的分析結果（sample_report_01.md / score JSON）
 
 ### 2.4 輸出
 
-`estimated_remaining_percent`、`burn_rate_percent_per_min`、`projected_exhaustion_minutes`、`warning_level`（green/yellow/orange/red/freeze）、`recommended_action`（continue / checkpoint / stop_subagents / compact / switch_to_safe_mode / ask_human_decision / freeze_mode）、`basis`（每個數字怎麼算的 + 誤差聲明——evidence-bound，跟 finding 同規格）。
+`estimated_remaining_percent`、`burn_rate_percent_per_min`、`projected_exhaustion_minutes`、`warning_level`（green/yellow/orange/red/freeze）、`recommended_action`（continue / checkpoint / stop_subagents / **route_to_secondary_pool**（subagent 分流到 Sonnet 獨立池，司機 2026-06-13 提出——Max 方案 Sonnet 有專屬 weekly 上限、跟主模型分開計） / compact / switch_to_safe_mode / ask_human_decision / freeze_mode）、`basis`（每個數字怎麼算的 + 誤差聲明——evidence-bound，跟 finding 同規格）。
 
 ### 2.5 警戒規則（config，預設值）
 
