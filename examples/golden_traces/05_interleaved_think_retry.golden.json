@@ -1,0 +1,39 @@
+{
+  "description": "黃金樣本 #5 — 真實形態的盲目重試（2026-06-13 對抗審查抓到的漏抓場景，永久編入 CI）。agent 每次 retry 前都會「想一下」（llm_call），但沒讀 log、沒換假設、state 不變。llm_call 不在 chain_breaking_event_types（read/grep/test/write）內 → 鏈不得被打斷，三次 retry 必須合成一條 critical hard_hat_loop，並抑制三條 state_unchanged_retry。",
+  "input_trace": {
+    "schema_version": "1.0.0",
+    "trace_id": "trace_gold_005",
+    "run_id": "run_think_then_blind_retry",
+    "agent_type": "claude_code",
+    "source_signature": "adapter_claude_code_v1:5d12",
+    "idempotency_key": "gold-005",
+    "model": "gemini-3.5-flash",
+    "events": [
+      { "event_id": "evt_0001", "type": "tool_call", "tool_name": "deploy", "start_time": "2026-06-12T14:00:00Z", "end_time": "2026-06-12T14:00:12Z", "token_in": 1900, "token_out": 420, "summary": "run deploy, fails with exit 1", "state_hash": "S0" },
+      { "event_id": "evt_0002", "type": "llm_call", "start_time": "2026-06-12T14:00:15Z", "end_time": "2026-06-12T14:00:20Z", "token_in": 800, "token_out": 150, "summary": "reason about the failure, same hypothesis as before", "state_hash": "S0" },
+      { "event_id": "evt_0003", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T14:00:22Z", "end_time": "2026-06-12T14:00:34Z", "token_in": 2000, "token_out": 400, "summary": "retry the identical deploy command", "state_hash": "S0" },
+      { "event_id": "evt_0004", "type": "llm_call", "start_time": "2026-06-12T14:00:37Z", "end_time": "2026-06-12T14:00:42Z", "token_in": 820, "token_out": 160, "summary": "reason again, still no log read", "state_hash": "S0" },
+      { "event_id": "evt_0005", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T14:00:44Z", "end_time": "2026-06-12T14:00:56Z", "token_in": 2010, "token_out": 410, "summary": "retry the identical deploy command again", "state_hash": "S0" },
+      { "event_id": "evt_0006", "type": "llm_call", "start_time": "2026-06-12T14:00:59Z", "end_time": "2026-06-12T14:01:04Z", "token_in": 790, "token_out": 155, "summary": "reason once more, unchanged approach", "state_hash": "S0" },
+      { "event_id": "evt_0007", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T14:01:06Z", "end_time": "2026-06-12T14:01:18Z", "token_in": 2020, "token_out": 415, "summary": "third identical retry, no rollback prepared", "state_hash": "S0" }
+    ]
+  },
+  "expected_findings": [
+    {
+      "pattern": "hard_hat_loop",
+      "severity": "critical",
+      "confidence": 0.9,
+      "evidence_spans": [
+        { "trace_event_id": "evt_0003" },
+        { "trace_event_id": "evt_0005" },
+        { "trace_event_id": "evt_0007" }
+      ],
+      "estimated_waste": { "tokens": 7255 }
+    }
+  ],
+  "expected_score": {
+    "value": 0.0,
+    "level": "L3",
+    "note": "thinking（llm_call）不會讓盲目重試變得不盲目——鏈必須穿過 llm_call 合成一條 critical。"
+  }
+}

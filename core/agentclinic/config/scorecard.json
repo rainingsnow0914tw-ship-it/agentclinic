@@ -1,0 +1,22 @@
+{
+  "scorecard_version": "1.0.0",
+  "base_score": 100.0,
+  "severity_weights": {
+    "critical": 40,
+    "high": 25,
+    "medium": 10,
+    "low": 4
+  },
+  "levels": [
+    { "level": "L3", "any_of": [ { "critical": 1 }, { "high": 2 } ] },
+    { "level": "L2", "any_of": [ { "high": 1 } ] },
+    { "level": "L1", "any_of": [ { "medium": 1 }, { "low": 1 } ] }
+  ],
+  "default_level": "L0",
+  "level_caps": {
+    "L3": 0,
+    "L2": 40,
+    "L1": 70,
+    "L0": 100
+  }
+}

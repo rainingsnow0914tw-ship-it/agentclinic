@@ -1,0 +1,53 @@
+{
+  "templates_version": "1.0.0",
+  "section_titles": {
+    "1": "Task Goal Inference",
+    "2": "Detected Patterns",
+    "3": "Token Waste Accounting",
+    "4": "Remediation",
+    "5": "Information Gaps",
+    "6": "What To Provide Next Time"
+  },
+  "standing_gaps": [
+    {
+      "key": "no_stated_goal",
+      "missing": "No stated task goal accompanies this trace",
+      "impact": "Section 1 is inferred from event activity only; intent-level drift cannot be judged.",
+      "next_step": "Provide a one-line statement of what the agent was supposed to do.",
+      "priority": 1
+    },
+    {
+      "key": "no_pricing_table",
+      "missing": "No model pricing configuration",
+      "impact": "Section 3 cannot convert wasted tokens into USD.",
+      "next_step": "Provide the model name and (optionally) your per-token pricing so USD waste can be computed.",
+      "priority": 3
+    }
+  ],
+  "data_gap_text": {
+    "missing_token_fields": {
+      "missing": "token_in / token_out absent on {count} event(s)",
+      "impact": "Section 3 totals are partial; waste estimates on affected findings are marked unknown instead of guessed.",
+      "next_step": "Export token counts per step (most agent SDKs expose usage metadata).",
+      "priority": 2
+    },
+    "missing_state_hash": {
+      "missing": "state_hash absent on {count} event(s)",
+      "impact": "Loop/retry detectors cannot confirm unchanged state on those events, so they skip rather than guess; real loops may be under-reported.",
+      "next_step": "Emit a cheap state fingerprint (e.g. hash of working-tree or key outputs) after each action.",
+      "priority": 2
+    },
+    "missing_model": {
+      "missing": "Model name not provided in trace",
+      "impact": "Section 3 USD estimation is impossible; model-specific advice is generic.",
+      "next_step": "Include the model identifier used by the agent.",
+      "priority": 3
+    }
+  },
+  "empty_findings_note": "No waste patterns detected by the current rule set. Absence of findings is not proof of a perfect run — see Section 5 for what this analysis could not see.",
+  "goal_confidence_note": "Confidence: low-to-medium. This is inferred from event activity only; no stated goal was provided (see Section 5).",
+  "usd_note": "USD unavailable: no model pricing configured (see Section 5).",
+  "no_remediation_note": "No remediation needed for this run.",
+  "waste_overlap_note": "Per-finding waste figures overlap on shared events; the total is clamped to observed tokens and should be read as an upper bound.",
+  "fallback_gap_priority": 9
+}

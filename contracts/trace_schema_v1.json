@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "raidmeter/trace_schema_v1",
+  "title": "RaidMeter Normalized Trace (Evidence Contract v1)",
+  "description": "任何來源 agent 的執行軌跡，正規化成這份 schema 後才進 RaidMeter Core。多一種來源 = 加一個 adapter 對應到此 contract，不動 core。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "trace_id", "run_id", "agent_type", "source_signature", "events"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "trace_id": { "type": "string", "description": "這份 trace 的唯一 id" },
+    "run_id": { "type": "string", "description": "被測 agent 的一次完整 run" },
+    "agent_type": {
+      "type": "string",
+      "enum": ["claude_code", "codex", "gemini_cli", "uipath_agent", "openai_agent", "langgraph", "crewai", "other"]
+    },
+    "source_signature": { "type": "string", "description": "原始 trace 來源指紋（adapter 名 + 原格式 hash），可追溯" },
+    "idempotency_key": { "type": "string", "description": "去重用：同一 trace 重送不重算（對應錯誤矩陣 duplicate run）" },
+    "model": { "type": "string", "description": "被測 agent 用的模型，如 claude-opus-4-8 / gemini-3.5-flash / gpt-5.5" },
+    "events": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/event" } }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "type", "start_time"],
+      "properties": {
+        "event_id": { "type": "string", "description": "必須在同一條 trace 內唯一（normalize 強制檢查）— evidence 與 suppression 都以 event_id 為鍵" },
+        "type": {
+          "type": "string",
+          "enum": ["llm_call", "tool_call", "retry", "read", "write", "grep", "test", "error", "other"]
+        },
+        "start_time": { "type": "string", "format": "date-time" },
+        "end_time": { "type": "string", "format": "date-time" },
+        "token_in": { "type": "integer", "minimum": 0 },
+        "token_out": { "type": "integer", "minimum": 0 },
+        "tool_name": { "type": "string" },
+        "summary": { "type": "string", "description": "這個 event 做了什麼，人類可讀" },
+        "state_hash": { "type": "string", "minLength": 1, "description": "動作後的 state 指紋；連續相同 = state_unchanged_retry 的證據。空字串不是合法指紋" },
+        "parent_event_id": { "type": "string" }
+      }
+    }
+  }
+}

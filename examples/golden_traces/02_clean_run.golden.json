@@ -1,0 +1,25 @@
+{
+  "description": "黃金樣本 #2 — 乾淨的 run（負樣本，防誤報）。agent 先 grep 找 anchor、小範圍 read、改 code、跑測試、驗證後才宣稱完成。預期：零 finding、L0、滿分。注意 e5 含 'completed' 關鍵字但前面有 test 事件 → 不得誤報 completion_claim_without_verification。",
+  "input_trace": {
+    "schema_version": "1.0.0",
+    "trace_id": "trace_gold_002",
+    "run_id": "run_clean_fix",
+    "agent_type": "claude_code",
+    "source_signature": "adapter_claude_code_v1:2b71",
+    "idempotency_key": "gold-002",
+    "model": "claude-opus-4-8",
+    "events": [
+      { "event_id": "evt_0001", "type": "grep", "tool_name": "grep", "start_time": "2026-06-12T11:00:00Z", "end_time": "2026-06-12T11:00:02Z", "token_in": 120, "token_out": 60, "summary": "grep for the failing function name in src/", "state_hash": "S0" },
+      { "event_id": "evt_0002", "type": "read", "tool_name": "read", "start_time": "2026-06-12T11:00:05Z", "end_time": "2026-06-12T11:00:07Z", "token_in": 30, "token_out": 900, "summary": "read only the matched 60-line span of handler.py", "state_hash": "S0" },
+      { "event_id": "evt_0003", "type": "write", "tool_name": "edit", "start_time": "2026-06-12T11:00:15Z", "end_time": "2026-06-12T11:00:18Z", "token_in": 150, "token_out": 300, "summary": "apply targeted fix to null-check in handler.py", "state_hash": "S1" },
+      { "event_id": "evt_0004", "type": "test", "tool_name": "pytest", "start_time": "2026-06-12T11:00:25Z", "end_time": "2026-06-12T11:00:50Z", "token_in": 200, "token_out": 150, "summary": "run unit tests - 14/14 pass", "state_hash": "S1" },
+      { "event_id": "evt_0005", "type": "other", "start_time": "2026-06-12T11:00:55Z", "end_time": "2026-06-12T11:00:56Z", "token_in": 80, "token_out": 60, "summary": "task completed and verified against test suite", "state_hash": "S1" }
+    ]
+  },
+  "expected_findings": [],
+  "expected_score": {
+    "value": 100.0,
+    "level": "L0",
+    "note": "乾淨 run。e5 有 'completed' 但 e4 已先驗證 → 不誤報。"
+  }
+}

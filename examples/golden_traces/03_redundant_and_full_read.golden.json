@@ -1,0 +1,46 @@
+{
+  "description": "黃金樣本 #3 — 中度浪費組合。同一查詢打兩次（redundant_tool_call, low）+ 先整檔讀 5400 tokens 再 grep（full_file_read_before_grep, medium）。預期兩條 finding、L1、分數被 L1 cap 壓到 70。",
+  "input_trace": {
+    "schema_version": "1.0.0",
+    "trace_id": "trace_gold_003",
+    "run_id": "run_medium_waste",
+    "agent_type": "codex",
+    "source_signature": "adapter_codex_v1:77c0",
+    "idempotency_key": "gold-003",
+    "model": "gpt-5.5",
+    "events": [
+      { "event_id": "evt_0001", "type": "tool_call", "tool_name": "list_issues", "start_time": "2026-06-12T12:00:00Z", "end_time": "2026-06-12T12:00:03Z", "token_in": 400, "token_out": 200, "summary": "query open issues from tracker", "state_hash": "S0" },
+      { "event_id": "evt_0002", "type": "tool_call", "tool_name": "list_issues", "start_time": "2026-06-12T12:00:10Z", "end_time": "2026-06-12T12:00:13Z", "token_in": 410, "token_out": 210, "summary": "query open issues from tracker", "state_hash": "S0" },
+      { "event_id": "evt_0003", "type": "read", "tool_name": "read", "start_time": "2026-06-12T12:00:20Z", "end_time": "2026-06-12T12:00:24Z", "token_in": 200, "token_out": 5200, "summary": "read entire src/main.py into context", "state_hash": "S0" },
+      { "event_id": "evt_0004", "type": "grep", "tool_name": "grep", "start_time": "2026-06-12T12:00:30Z", "end_time": "2026-06-12T12:00:31Z", "token_in": 50, "token_out": 80, "summary": "grep handleRetry in src/main.py", "state_hash": "S0" },
+      { "event_id": "evt_0005", "type": "write", "tool_name": "edit", "start_time": "2026-06-12T12:00:40Z", "end_time": "2026-06-12T12:00:44Z", "token_in": 120, "token_out": 350, "summary": "apply targeted fix to retry handler", "state_hash": "S1" }
+    ]
+  },
+  "expected_findings": [
+    {
+      "pattern": "redundant_tool_call",
+      "severity": "low",
+      "confidence": 0.7,
+      "evidence_spans": [
+        { "trace_event_id": "evt_0001" },
+        { "trace_event_id": "evt_0002" }
+      ],
+      "estimated_waste": { "tokens": 620 }
+    },
+    {
+      "pattern": "full_file_read_before_grep",
+      "severity": "medium",
+      "confidence": 0.7,
+      "evidence_spans": [
+        { "trace_event_id": "evt_0003" },
+        { "trace_event_id": "evt_0004" }
+      ],
+      "estimated_waste": { "tokens": 5400 }
+    }
+  ],
+  "expected_score": {
+    "value": 70.0,
+    "level": "L1",
+    "note": "deduction 4+10=14 → raw 86，但 L1 cap=70。"
+  }
+}

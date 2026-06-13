@@ -1,0 +1,40 @@
+{
+  "description": "黃金樣本 #1 — hard_hat_loop。被測 agent 反覆 retry 同一個失敗的 deploy 指令：沒讀 error log、沒換 hypothesis、state 完全沒變、沒準備 rollback。預期 RaidMeter 抓出 critical hard_hat_loop。CI 迴歸固定跑此樣本，輸出必須穩定等於 expected。",
+  "input_trace": {
+    "schema_version": "1.0.0",
+    "trace_id": "trace_gold_001",
+    "run_id": "run_deploy_4x",
+    "agent_type": "claude_code",
+    "source_signature": "adapter_claude_code_v1:9f2a",
+    "idempotency_key": "gold-001",
+    "model": "gemini-3.5-flash",
+    "events": [
+      { "event_id": "evt_0001", "type": "tool_call", "tool_name": "deploy", "start_time": "2026-06-12T10:00:00Z", "end_time": "2026-06-12T10:00:12Z", "token_in": 1900, "token_out": 420, "summary": "跑 gcloud run deploy，失敗（exit 1）", "state_hash": "S0" },
+      { "event_id": "evt_0002", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T10:00:15Z", "end_time": "2026-06-12T10:00:27Z", "token_in": 2050, "token_out": 410, "summary": "原封不動再跑一次同一個 deploy，沒讀上次 log", "state_hash": "S0", "parent_event_id": "evt_0001" },
+      { "event_id": "evt_0003", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T10:00:31Z", "end_time": "2026-06-12T10:00:44Z", "token_in": 2080, "token_out": 405, "summary": "第三次同樣指令，state 仍未變", "state_hash": "S0", "parent_event_id": "evt_0002" },
+      { "event_id": "evt_0004", "type": "retry", "tool_name": "deploy", "start_time": "2026-06-12T10:00:47Z", "end_time": "2026-06-12T10:01:00Z", "token_in": 2110, "token_out": 415, "summary": "第四次同樣指令，仍沒 grep error、沒換做法", "state_hash": "S0", "parent_event_id": "evt_0003" }
+    ]
+  },
+  "expected_findings": [
+    {
+      "finding_id": "RM-F-20260612-001",
+      "pattern": "hard_hat_loop",
+      "severity": "critical",
+      "confidence": 0.9,
+      "evidence_spans": [
+        { "trace_event_id": "evt_0002", "start_time": "2026-06-12T10:00:15Z", "end_time": "2026-06-12T10:00:27Z", "token_in": 2050, "token_out": 410, "note": "retry 但 state_hash 同 evt_0001（S0），中間無 read/grep" },
+        { "trace_event_id": "evt_0003", "start_time": "2026-06-12T10:00:31Z", "end_time": "2026-06-12T10:00:44Z", "token_in": 2080, "token_out": 405, "note": "state 仍 S0，第三次盲目重試" },
+        { "trace_event_id": "evt_0004", "start_time": "2026-06-12T10:00:47Z", "end_time": "2026-06-12T10:01:00Z", "token_in": 2110, "token_out": 415, "note": "state 仍 S0，第四次，無 rollback 準備" }
+      ],
+      "impacted_metric": "token_waste",
+      "estimated_waste": { "tokens": 7470, "usd": null, "basis": "3 次無效 retry 的 in+out 合計；usd 未提供 model 單價故標 null" },
+      "remediation": "在 retry 之前，強制 agent 讀上一次 action 的 error log，且要求 state_hash 改變或提出新 hypothesis 才允許重試；可加 require_log_read_before_retry gate。",
+      "replay": { "detector_id": "hard_hat_loop", "detector_version": "1.0.0", "rule_snapshot": "retry AND state_hash==prev AND no read/grep between" }
+    }
+  ],
+  "expected_score": {
+    "value": 0.0,
+    "level": "L3",
+    "note": "單一 critical hard_hat_loop 直接拉到最差級；但判定來自 3 條 evidence span，非單一條件（no single-signal verdict）。"
+  }
+}

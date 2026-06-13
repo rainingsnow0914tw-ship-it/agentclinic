@@ -1,0 +1,32 @@
+{
+  "description": "黃金樣本 #4 — 殘缺資料 + 無驗證宣稱完成（degraded mode 示範）。整條 trace 沒有 token 欄位、沒有 model：引擎必須標 unknown 而不是編數字；寫入沒前置證據但 token_out 缺 → lucky_guess/agent_piling_on 必須跳過不猜。e3 宣稱完成且全程無 test → completion_claim_without_verification（high）。預期 1 finding、L2、cap 壓到 40。",
+  "input_trace": {
+    "schema_version": "1.0.0",
+    "trace_id": "trace_gold_004",
+    "run_id": "run_blind_claim",
+    "agent_type": "gemini_cli",
+    "source_signature": "adapter_gemini_cli_v1:c4e9",
+    "idempotency_key": "gold-004",
+    "events": [
+      { "event_id": "evt_0001", "type": "tool_call", "tool_name": "deploy", "start_time": "2026-06-12T13:00:00Z", "end_time": "2026-06-12T13:00:30Z", "summary": "deploy new build to staging", "state_hash": "S0" },
+      { "event_id": "evt_0002", "type": "write", "tool_name": "edit", "start_time": "2026-06-12T13:00:40Z", "end_time": "2026-06-12T13:00:45Z", "summary": "quick config patch without reading current config", "state_hash": "S1" },
+      { "event_id": "evt_0003", "type": "other", "start_time": "2026-06-12T13:00:50Z", "end_time": "2026-06-12T13:00:51Z", "summary": "All done - deployment completed successfully", "state_hash": "S2" }
+    ]
+  },
+  "expected_findings": [
+    {
+      "pattern": "completion_claim_without_verification",
+      "severity": "high",
+      "confidence": 0.75,
+      "evidence_spans": [
+        { "trace_event_id": "evt_0003" }
+      ],
+      "estimated_waste": { "tokens": null }
+    }
+  ],
+  "expected_score": {
+    "value": 40.0,
+    "level": "L2",
+    "note": "deduction 25 → raw 75，L2 cap=40。waste 標 null（token 欄位缺）— 不編造。"
+  }
+}

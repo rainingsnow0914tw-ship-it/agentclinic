@@ -1,0 +1,100 @@
+{
+  "rules_version": "1.0.0",
+  "engine": {
+    "finding_id_prefix": "RM-F",
+    "min_confidence_floor": 0.3
+  },
+  "patterns": {
+    "hard_hat_loop": {
+      "enabled": true,
+      "severity": "critical",
+      "base_confidence": 0.9,
+      "impacted_metric": "token_waste",
+      "params": {
+        "min_retry_chain": 2,
+        "chain_breaking_event_types": ["read", "grep", "test", "write"]
+      },
+      "degraded_by": {},
+      "suppresses": ["state_unchanged_retry"],
+      "remediation": "Before any retry, force the agent to read the previous action's error log, and require a changed state_hash or an explicit new hypothesis before allowing the retry. Add a require_log_read_before_retry gate."
+    },
+    "state_unchanged_retry": {
+      "enabled": true,
+      "severity": "high",
+      "base_confidence": 0.8,
+      "impacted_metric": "token_waste",
+      "params": {
+        "justifying_prev_event_types": ["read", "grep", "test", "write"]
+      },
+      "degraded_by": {},
+      "suppresses": [],
+      "remediation": "A retry that leaves state_hash unchanged did no new work. Require evidence gathering (log read, grep, smaller repro) between attempts."
+    },
+    "lucky_guess": {
+      "enabled": true,
+      "severity": "medium",
+      "base_confidence": 0.6,
+      "impacted_metric": "correctness",
+      "params": {
+        "max_write_tokens": 800,
+        "lookback_events": 5,
+        "evidence_event_types": ["read", "grep", "test"]
+      },
+      "degraded_by": {},
+      "suppresses": [],
+      "remediation": "Small edits made without reading logs or grepping for the failing code path are guesses. Require at least one evidence-gathering step in the window before a write."
+    },
+    "agent_piling_on": {
+      "enabled": true,
+      "severity": "high",
+      "base_confidence": 0.7,
+      "impacted_metric": "token_waste",
+      "params": {
+        "min_write_tokens": 800,
+        "lookback_events": 5,
+        "evidence_event_types": ["read", "grep", "test"]
+      },
+      "degraded_by": {},
+      "suppresses": ["lucky_guess"],
+      "remediation": "Large rewrites without prior evidence gathering pile changes onto an undiagnosed problem. Gate large writes behind a demonstrated root-cause step."
+    },
+    "full_file_read_before_grep": {
+      "enabled": true,
+      "severity": "medium",
+      "base_confidence": 0.7,
+      "impacted_metric": "token_waste",
+      "params": {
+        "big_read_tokens": 4000
+      },
+      "degraded_by": {},
+      "suppresses": [],
+      "remediation": "Grep for the anchor first, then read only the relevant span. Reading whole files into context before searching inverts the cheap/expensive order."
+    },
+    "redundant_tool_call": {
+      "enabled": true,
+      "severity": "low",
+      "base_confidence": 0.7,
+      "impacted_metric": "token_waste",
+      "params": {
+        "min_repeats": 2,
+        "grouped_event_types": ["tool_call", "read", "grep"]
+      },
+      "degraded_by": {},
+      "suppresses": [],
+      "remediation": "Cache or reuse results of identical queries within a run instead of re-fetching the same information."
+    },
+    "completion_claim_without_verification": {
+      "enabled": true,
+      "severity": "high",
+      "base_confidence": 0.75,
+      "impacted_metric": "reliability",
+      "params": {
+        "claim_keywords": ["done", "completed", "complete", "finished", "all set", "successfully", "works now"],
+        "verification_event_types": ["test"]
+      },
+      "degraded_by": {},
+      "suppresses": [],
+      "remediation": "Require a verification event (test run, output check) before any completion claim. A claim without a preceding verification step is unsubstantiated."
+    }
+  }
+}

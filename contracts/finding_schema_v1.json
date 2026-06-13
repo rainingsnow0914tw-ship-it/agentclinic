@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "raidmeter/finding_schema_v1",
+  "title": "RaidMeter Finding Contract v1",
+  "description": "每個 finding 必須可追溯到 trace evidence span。無 evidence 的 finding 不合法（曦哥：沒有 evidence span 的 coaching，全都算廢話）。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["finding_id", "pattern", "severity", "confidence", "evidence_spans", "impacted_metric", "remediation", "replay"],
+  "properties": {
+    "finding_id": { "type": "string", "description": "如 RM-F-20260612-001" },
+    "pattern": {
+      "type": "string",
+      "enum": [
+        "hard_hat_loop",
+        "state_unchanged_retry",
+        "lucky_guess",
+        "agent_piling_on",
+        "full_file_read_before_grep",
+        "redundant_tool_call",
+        "completion_claim_without_verification"
+      ]
+    },
+    "severity": { "type": "string", "enum": ["critical", "high", "medium", "low"] },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "證據不足時降，不硬判（對應錯誤矩陣 missing fields → 降 confidence 不硬判）"
+    },
+    "evidence_spans": {
+      "type": "array",
+      "minItems": 1,
+      "description": "至少一條，指向 trace 裡的具體 event。無證據 = finding 非法。",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["trace_event_id"],
+        "properties": {
+          "trace_event_id": { "type": "string" },
+          "start_time": { "type": "string" },
+          "end_time": { "type": "string" },
+          "token_in": { "type": "integer" },
+          "token_out": { "type": "integer" },
+          "note": { "type": "string", "description": "為什麼這個 event 是證據" }
+        }
+      }
+    },
+    "impacted_metric": {
+      "type": "string",
+      "enum": ["token_waste", "latency", "cost", "correctness", "reliability"]
+    },
+    "estimated_waste": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "資料不足以推算時，basis 標 unknown，數字留 null，不編造。",
+      "properties": {
+        "tokens": { "type": ["integer", "null"] },
+        "usd": { "type": ["number", "null"] },
+        "basis": { "type": "string", "description": "怎麼算的；資料不足要標 unknown + 缺什麼" }
+      }
+    },
+    "remediation": { "type": "string", "description": "具體可執行，不是抽象口號。由 LLM 從 deterministic finding 翻寫，不得新增證據。" },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "可重跑：同 trace + 同 detector 版本 → 同 finding。",
+      "required": ["detector_id", "detector_version"],
+      "properties": {
+        "detector_id": { "type": "string" },
+        "detector_version": { "type": "string" },
+        "rule_snapshot": { "type": "string", "description": "觸發當下的規則快照，舊報告永遠可解釋" }
+      }
+    }
+  }
+}

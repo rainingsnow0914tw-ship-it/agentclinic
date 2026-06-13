@@ -1,0 +1,74 @@
+<svg viewBox="0 0 860 660" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ttl desc" font-family="-apple-system, 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', sans-serif">
+  <title id="ttl">AgentClinic 大門 vs 後台</title>
+  <desc id="desc">工程師在大門丟入任何資料、拿回報告；後台把資料正規化成 Evidence Contract、四角色分工、每個結論綁證據。對比一般 Chat LLM 用猜的，AgentClinic 指得出證據。</desc>
+
+  <rect x="8" y="8" width="844" height="644" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+  <text x="430" y="42" text-anchor="middle" font-size="22" font-weight="700" fill="#1F2937">AgentClinic — 大門 vs 後台</text>
+  <text x="430" y="65" text-anchor="middle" font-size="13" fill="#64748B">工程師看到的，跟我們做的，是兩層</text>
+
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 z" fill="#94A3B8"/></marker>
+  </defs>
+
+  <line x1="426" y1="88" x2="426" y2="506" stroke="#CBD5E1" stroke-width="2" stroke-dasharray="6 6"/>
+  <text x="441" y="300" font-size="12" fill="#94A3B8" transform="rotate(90 441 300)" text-anchor="middle">工程師看不到這道牆之後</text>
+
+  <rect x="30" y="84" width="186" height="28" rx="14" fill="#E8F0FE"/>
+  <text x="44" y="103" font-size="13" font-weight="700" fill="#2563EB">🚪 大門 · 工程師端</text>
+
+  <rect x="30" y="128" width="368" height="150" rx="12" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="1.5"/>
+  <text x="48" y="156" font-size="15" font-weight="700" fill="#1F2937">工程師丟東西進來</text>
+  <text x="48" y="182" font-size="13" fill="#475569">• 一句「我覺得 agent 跑歪了」</text>
+  <text x="48" y="204" font-size="13" fill="#475569">• 或貼 log / 聊天紀錄 / trace</text>
+  <text x="48" y="226" font-size="13" fill="#475569">• 五欄位全選填，給多少都行</text>
+  <rect x="48" y="242" width="168" height="24" rx="12" fill="#DBEAFE"/>
+  <text x="60" y="259" font-size="12" font-weight="600" fill="#1D4ED8">不用會跟 AI 講話</text>
+
+  <rect x="30" y="404" width="368" height="92" rx="12" fill="#FFFFFF" stroke="#BFDBFE" stroke-width="1.5"/>
+  <text x="48" y="436" font-size="15" font-weight="700" fill="#1F2937">📄 拿回六段診斷報告</text>
+  <text x="48" y="462" font-size="13" fill="#475569">每句話都指得出證據</text>
+
+  <rect x="452" y="84" width="252" height="28" rx="14" fill="#EEF1F6"/>
+  <text x="466" y="103" font-size="13" font-weight="700" fill="#475569">🔬 後台 · 讓報告不是用猜的</text>
+
+  <rect x="452" y="128" width="378" height="52" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="470" y="151" font-size="13" font-weight="700" fill="#334155">① 正規化</text>
+  <text x="470" y="169" font-size="12" fill="#64748B">把你丟的東西整理成同一份病歷</text>
+  <line x1="641" y1="180" x2="641" y2="192" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="452" y="194" width="378" height="52" rx="10" fill="#EEF0FF" stroke="#C7D2FE" stroke-width="1.5"/>
+  <text x="470" y="217" font-size="13" font-weight="700" fill="#4338CA">② Evidence Contract（脊椎）</text>
+  <text x="470" y="235" font-size="12" fill="#6366F1">固定的病歷格式，所有判斷的依據</text>
+  <line x1="641" y1="246" x2="641" y2="258" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="452" y="260" width="378" height="104" rx="10" fill="#F1F5F9" stroke="#CBD5E1" stroke-width="1.5"/>
+  <text x="470" y="283" font-size="13" font-weight="700" fill="#334155">③ 四個角色分工（不混）</text>
+  <g font-size="11" text-anchor="middle">
+    <rect x="466" y="296" width="84" height="56" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="508" y="320" font-weight="700" fill="#1F2937">判官</text><text x="508" y="338" fill="#64748B">規則引擎</text>
+    <rect x="558" y="296" width="84" height="56" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="600" y="320" font-weight="700" fill="#1F2937">教練</text><text x="600" y="338" fill="#64748B">LLM</text>
+    <rect x="650" y="296" width="84" height="56" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="692" y="320" font-weight="700" fill="#1F2937">紀錄</text><text x="692" y="338" fill="#64748B">Test Cloud</text>
+    <rect x="742" y="296" width="80" height="56" rx="8" fill="#FFFFFF" stroke="#CBD5E1"/>
+    <text x="782" y="320" font-weight="700" fill="#1F2937">編排</text><text x="782" y="338" fill="#64748B">UiPath</text>
+  </g>
+  <line x1="641" y1="364" x2="641" y2="376" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <rect x="452" y="378" width="378" height="52" rx="10" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1.5"/>
+  <text x="470" y="401" font-size="13" font-weight="700" fill="#047857">④ 每個結論綁一條證據</text>
+  <text x="470" y="419" font-size="12" fill="#059669">沒有證據的 finding 直接擋掉</text>
+
+  <path d="M398 196 C 420 196 430 152 452 152" fill="none" stroke="#94A3B8" stroke-width="2" marker-end="url(#arr)"/>
+  <path d="M452 404 C 430 404 420 450 400 450" fill="none" stroke="#94A3B8" stroke-width="2" marker-end="url(#arr)"/>
+
+  <rect x="30" y="522" width="386" height="110" rx="12" fill="#FEF2F2" stroke="#FECACA" stroke-width="1.5"/>
+  <text x="48" y="552" font-size="15" font-weight="700" fill="#DC2626">✕ 一般 Chat LLM</text>
+  <text x="48" y="578" font-size="13" fill="#7F1D1D">像找朋友聊「我不舒服」</text>
+  <text x="48" y="602" font-size="13" font-weight="600" fill="#7F1D1D">憑你會不會講 — 用猜的</text>
+
+  <rect x="444" y="522" width="386" height="110" rx="12" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1.5"/>
+  <text x="462" y="552" font-size="15" font-weight="700" fill="#16A34A">✓ AgentClinic</text>
+  <text x="462" y="578" font-size="13" fill="#14532D">像一間有制度的診所</text>
+  <text x="462" y="602" font-size="13" font-weight="600" fill="#14532D">每句話 — 指得出證據</text>
+</svg>
