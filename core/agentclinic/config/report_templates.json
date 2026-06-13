@@ -1,13 +1,25 @@
 {
-  "templates_version": "1.0.0",
+  "templates_version": "1.1.0",
+  "report_schema_version": "report-v2",
   "section_titles": {
     "1": "Task Goal Inference",
     "2": "Detected Patterns",
     "3": "Token Waste Accounting",
     "4": "Remediation",
     "5": "Information Gaps",
-    "6": "What To Provide Next Time"
+    "6": "What To Provide Next Time",
+    "7": "Budget & Runway Analysis"
   },
+  "budget_missing_note": "No budget input was provided with this analyze run; pre-run gauge was not taken. Provide budget input via `analyze --budget-input <file>` to enable variance + next-run recommendation. This section still summarises the trace's own burn estimate from findings.",
+  "next_run_recommendation_map": {
+    "freeze":  ["safe",     "save_tokens"],
+    "red":     ["safe",     "avoid_lockout"],
+    "orange":  ["balanced", "avoid_lockout"],
+    "yellow":  ["balanced", "balanced"],
+    "green":   ["balanced", "balanced"],
+    "unknown": ["safe",     "balanced"]
+  },
+  "high_waste_ratio_threshold": 0.3,
   "standing_gaps": [
     {
       "key": "no_stated_goal",

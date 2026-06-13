@@ -66,8 +66,77 @@ def _gap_entries(gaps: list[dict], templates: dict) -> list[dict]:
     return entries
 
 
+def _build_section_7(sec3: dict, findings: list[dict],
+                     budget_assessment: dict | None, t: dict) -> dict:
+    """Section 7 (Budget & Runway Analysis) is always present. With a budget
+    assessment it shows variance + next-run recommendation; without one it
+    shows trace burn estimate only and explains how to enable the rest."""
+    waste_ratio = (
+        round(sec3["known_wasted_tokens"] / sec3["total_known_tokens"], 3)
+        if sec3["total_known_tokens"] else None
+    )
+    top = sorted(
+        (f for f in findings if f["estimated_waste"]["tokens"] is not None),
+        key=lambda f: f["estimated_waste"]["tokens"],
+        reverse=True,
+    )[:3]
+    trace_burn = {
+        "total_known_tokens": sec3["total_known_tokens"],
+        "known_wasted_tokens": sec3["known_wasted_tokens"],
+        "waste_ratio": waste_ratio,
+        "top_burn_patterns": [
+            {"finding_id": f["finding_id"], "pattern": f["pattern"],
+             "tokens": f["estimated_waste"]["tokens"]}
+            for f in top
+        ],
+    }
+    section = {
+        "title": t["section_titles"]["7"],
+        "trace_burn_estimate": trace_burn,
+        "budget_assessment": None,
+        "variance": None,
+        "next_run_recommendation": None,
+        "missing_note": None,
+    }
+    if budget_assessment is None:
+        section["missing_note"] = t["budget_missing_note"]
+        return section
+
+    section["budget_assessment"] = budget_assessment
+    section["variance"] = {
+        "budget_projected_exhaustion_min":
+            budget_assessment.get("projected_exhaustion_minutes"),
+        "actual_trace_known_tokens": sec3["total_known_tokens"],
+        "note": ("budget projects window-level exhaustion in minutes; trace "
+                 "tokens are this-run only -- not direct apples-to-apples, "
+                 "they are companion signals, not the same axis"),
+    }
+    section["next_run_recommendation"] = _recommend_next_run(
+        budget_assessment, waste_ratio, t)
+    return section
+
+
+def _recommend_next_run(budget: dict, waste_ratio: float | None,
+                        t: dict) -> dict:
+    level = budget.get("warning_level", "unknown")
+    rec_map = t.get("next_run_recommendation_map", {})
+    mode, goal = rec_map.get(level, ["balanced", "balanced"])
+    rationale = [f"current level={level}"]
+    high_thresh = t.get("high_waste_ratio_threshold", 0.3)
+    if waste_ratio is not None and waste_ratio > high_thresh:
+        rationale.append(
+            f"waste ratio {waste_ratio:.0%} > {high_thresh:.0%} "
+            "-- cap parallel agents next run")
+    return {
+        "suggested_task_mode": mode,
+        "suggested_user_goal": goal,
+        "rationale": "; ".join(rationale),
+    }
+
+
 def build_report(trace: dict, gaps: list[dict], findings: list[dict],
-                 score_result: dict, templates: dict | None = None) -> dict:
+                 score_result: dict, templates: dict | None = None,
+                 budget_assessment: dict | None = None) -> dict:
     t = templates or load_templates()
 
     total_known = sum(
@@ -101,7 +170,27 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
 
     gap_entries = sorted(_gap_entries(gaps, t), key=lambda g: g["priority"])
 
+    section_3 = {
+        "title": t["section_titles"]["3"],
+        "total_known_tokens": total_known,
+        "events_missing_token_fields": events_missing_tokens,
+        "known_wasted_tokens": known_waste,
+        "waste_note": waste_note,
+        "waste_unknown_findings": unknown_waste_findings,
+        "biggest_waste_point": (
+            {
+                "finding_id": biggest["finding_id"],
+                "pattern": biggest["pattern"],
+                "tokens": biggest["estimated_waste"]["tokens"],
+            }
+            if biggest else None
+        ),
+        "usd": None,
+        "usd_note": t["usd_note"],
+    }
+
     report = {
+        "schema_version": t.get("report_schema_version", "report-v2"),
         "trace_id": trace["trace_id"],
         "run_id": trace["run_id"],
         "agent_type": trace["agent_type"],
@@ -116,24 +205,7 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
                 "findings": findings,
                 "note": t["empty_findings_note"] if not findings else None,
             },
-            "3": {
-                "title": t["section_titles"]["3"],
-                "total_known_tokens": total_known,
-                "events_missing_token_fields": events_missing_tokens,
-                "known_wasted_tokens": known_waste,
-                "waste_note": waste_note,
-                "waste_unknown_findings": unknown_waste_findings,
-                "biggest_waste_point": (
-                    {
-                        "finding_id": biggest["finding_id"],
-                        "pattern": biggest["pattern"],
-                        "tokens": biggest["estimated_waste"]["tokens"],
-                    }
-                    if biggest else None
-                ),
-                "usd": None,
-                "usd_note": t["usd_note"],
-            },
+            "3": section_3,
             "4": {
                 "title": t["section_titles"]["4"],
                 "note": t["no_remediation_note"] if not findings else None,
@@ -157,6 +229,7 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
                     for g in gap_entries
                 ],
             },
+            "7": _build_section_7(section_3, findings, budget_assessment, t),
         },
         "score": score_result,
     }
@@ -166,13 +239,19 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
 
 def validate_report(report: dict) -> None:
     sections = report.get("sections", {})
-    for key in ("1", "2", "3", "4", "5", "6"):
+    for key in ("1", "2", "3", "4", "5", "6", "7"):
         if key not in sections:
             raise ReportContractError(f"report missing section {key}")
     if not sections["5"]["gaps"]:
         raise ReportContractError(
             "Section 5 (information gaps) must never be empty — honesty about "
             "what we cannot see is the product's core guarantee"
+        )
+    s7 = sections["7"]
+    if s7.get("budget_assessment") is None and not s7.get("missing_note"):
+        raise ReportContractError(
+            "Section 7 missing both budget_assessment and missing_note — "
+            "either provide a budget input or explain why none was given"
         )
 
 
@@ -248,5 +327,35 @@ def to_markdown(report: dict) -> str:
     lines += ["", f"## 6. {s['6']['title']}"]
     for i, sug in enumerate(s["6"]["suggestions"], 1):
         lines.append(f"{i}. {sug['provide']}")
+    sec7 = s["7"]
+    lines += ["", f"## 7. {sec7['title']}"]
+    tb = sec7["trace_burn_estimate"]
+    lines.append(
+        f"- trace burn: {tb['known_wasted_tokens']} wasted / "
+        f"{tb['total_known_tokens']} known total"
+        + (f" ({tb['waste_ratio']:.0%} ratio)"
+           if tb["waste_ratio"] is not None else "")
+    )
+    if tb["top_burn_patterns"]:
+        lines.append("- top burn patterns:")
+        for p in tb["top_burn_patterns"]:
+            lines.append(
+                f"  - `{p['pattern']}` ({p['finding_id']}): {p['tokens']} tokens")
+    if sec7["missing_note"]:
+        lines.append(f"- {sec7['missing_note']}")
+    if sec7["budget_assessment"] is not None:
+        ba = sec7["budget_assessment"]
+        lines.append(
+            f"- pre-run gauge: **{ba['warning_level']}** "
+            f"(action: `{ba['recommended_action']}`, "
+            f"projected exhaustion: {ba['projected_exhaustion_minutes']}min)"
+        )
+        v = sec7["variance"]
+        lines.append(f"- variance: {v['note']}")
+        nr = sec7["next_run_recommendation"]
+        lines.append(
+            f"- next run: task_mode=`{nr['suggested_task_mode']}`, "
+            f"user_goal=`{nr['suggested_user_goal']}` ({nr['rationale']})"
+        )
     lines.append("")
     return "\n".join(lines)

@@ -23,18 +23,36 @@ from .score import load_scorecard, score
 from .validate import TraceSchemaError
 
 
-def analyze_pipeline(trace: dict, rules_path=None, scorecard_path=None) -> dict:
+def analyze_pipeline(trace: dict, rules_path=None, scorecard_path=None,
+                     budget_assessment: dict | None = None) -> dict:
     trace, gaps = normalize(trace)
     rules = load_rules(rules_path)
     findings = run_detectors(trace, gaps, rules)
     result = score(findings, load_scorecard(scorecard_path))
-    return build_report(trace, gaps, findings, result)
+    return build_report(trace, gaps, findings, result,
+                        budget_assessment=budget_assessment)
+
+
+def _load_budget_input(path: str | None, budget_rules_path: str | None
+                       ) -> dict | None:
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as f:
+        inp = json.load(f)
+    # accept either a raw budget input dict, or a budget golden wrapper
+    if isinstance(inp, dict) and "input" in inp and inp.get("kind") == "budget":
+        inp = inp["input"]
+    rules = _load_budget_rules(budget_rules_path)
+    return budget_assess(inp, rules)
 
 
 def cmd_analyze(args: argparse.Namespace) -> int:
     try:
         trace = load_trace_file(args.trace)
-        report = analyze_pipeline(trace, args.rules, args.scorecard)
+        budget_assessment = _load_budget_input(
+            args.budget_input, args.budget_rules)
+        report = analyze_pipeline(trace, args.rules, args.scorecard,
+                                  budget_assessment=budget_assessment)
     except TraceSchemaError as e:
         print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
               file=sys.stderr)
@@ -223,6 +241,10 @@ def main(argv: list[str] | None = None) -> int:
     p_an.add_argument("trace", help="trace JSON (golden files auto-unwrap)")
     p_an.add_argument("--report", help="write markdown report to this path")
     p_an.add_argument("--findings", help="write full report JSON to this path")
+    p_an.add_argument("--budget-input",
+                      help="optional budget input JSON; populates Section 7 "
+                      "variance + next-run recommendation. Accepts a raw "
+                      "budget input dict or a budget golden wrapper.")
     p_an.set_defaults(func=cmd_analyze)
 
     p_bg = sub.add_parser("budget", help="run budget guardian on one input")
