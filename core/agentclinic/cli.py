@@ -175,8 +175,10 @@ def cmd_publish(args: argparse.Namespace) -> int:
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     sc = report["score"]
-    print(f"== published: testcase {result['testcase']['objKey']} "
-          f"(score {sc['value']}, {sc['level']}) ==", file=sys.stderr)
+    fails = sum(1 for lg in result["logs"] if lg["result"] == "Failed")
+    print(f"== published: execution {result['execution']['id'][:8]} "
+          f"({len(result['logs'])} log(s), {fails} Failed); "
+          f"score {sc['value']} / {sc['level']} ==", file=sys.stderr)
     return 0
 
 

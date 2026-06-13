@@ -47,7 +47,7 @@ Dependency: `python -m pip install --user jsonschema`
 | `uipath/config.py` | resolve `.uipath/app.json` + `UIPATH_*` env overrides; validate required fields (app_id / app_secret / token_endpoint / scope / base_url) |
 | `uipath/auth.py` | client_credentials OAuth exchange + in-process token cache (keyed by token_endpoint+app_id, refreshed 60s early). PAT path is documented dead-end (see `docs/P2_SPIKE_RESULT.md`). |
 | `uipath/client.py` | thin Test Manager REST wrapper — `list_projects`, `find_project_by_name`, `create_project`, `ensure_project` (idempotent), `create_testcase`, `upload_attachment`. No business logic. |
-| `uipath/publish.py` | report → Test Cloud entrypoint: ensure project (idempotent on name) → create testcase (foreignReference = trace_id::run_id) → upload markdown attachment. Returns flat tracking ids + UI url. |
+| `uipath/publish.py` | report → Test Cloud full chain: ensure project (idempotent on name) → ensure testcase per detected pattern (idempotent on `pattern:<name>`) → create TestSet (`run:<trace>/<run>`) → assign testcases → create TestExecution → create TestCaseLog per testcase → override-result (Failed if pattern fired, Passed if clean) → attach markdown report on TestExecution. Returns flat tracking ids + UI url. |
 
 ## 配置驅動（調規則不動 code）
 
@@ -96,8 +96,11 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
 - ✅ **P2 v1 (2026-06-13)**: spike chain Python-ised as `uipath/` module +
   `publish` CLI; idempotent project, foreignReference-tracked testcase,
   markdown report attachment.
-- **P2 v2**: walk the full chain (TestSet → TestExecution → TestCaseLog
-  with pass/fail result, attachment hung on TestCaseLog not TestCase).
+- ✅ **P2 v2 (2026-06-13)**: full Test Cloud chain — project → per-pattern
+  testcase → testset → execution → testcaselog with Passed/Failed override
+  derived from findings → markdown attachment on the execution. Each
+  AgentClinic detector becomes a reusable Quality Test in Test Manager;
+  each trace is one run of that suite.
 - **P2 v3 (6/15–18)**: Studio Web Orchestrator Agent as host body, this
   core packaged as a Coded Agent (`uipath pack` / `uipath publish`).
 - **P4 (6/22–24)**: bounded LLM coaching — LLM may rewrite wording of
