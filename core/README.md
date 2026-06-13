@@ -27,9 +27,14 @@ python -m agentclinic golden RaidMeter-UiPath\examples\golden_budget
 
 # publish: analyze + push report to UiPath Test Cloud (needs .uipath/app.json)
 python -m agentclinic publish RaidMeter-UiPath\examples\golden_traces\01_hard_hat_loop.golden.json --budget-input RaidMeter-UiPath\examples\golden_budget\04_time_race_parallel_amplifier.golden.json
+
+# Optional LLM coach (rewrites remediation wording only; boundary-validated)
+python -m agentclinic analyze ...trace.json --coach mock     # offline, deterministic
+$env:GCP_PROJECT="my-proj"; $env:GCP_ACCESS_TOKEN=$(gcloud auth print-access-token)
+python -m agentclinic analyze ...trace.json --coach vertex   # Gemini via Vertex AI REST
 ```
 
-Dependency for `publish`: `python -m pip install --user requests`
+Dependency for `publish` + `vertex`: `python -m pip install --user requests`
 
 Dependency: `python -m pip install --user jsonschema`
 
@@ -48,6 +53,11 @@ Dependency: `python -m pip install --user jsonschema`
 | `uipath/auth.py` | client_credentials OAuth exchange + in-process token cache (keyed by token_endpoint+app_id, refreshed 60s early). PAT path is documented dead-end (see `docs/P2_SPIKE_RESULT.md`). |
 | `uipath/client.py` | thin Test Manager REST wrapper — `list_projects`, `find_project_by_name`, `create_project`, `ensure_project` (idempotent), `create_testcase`, `upload_attachment`. No business logic. |
 | `uipath/publish.py` | report → Test Cloud full chain: ensure project (idempotent on name) → ensure testcase per detected pattern (idempotent on `pattern:<name>`) → create TestSet (`run:<trace>/<run>`) → assign testcases → create TestExecution → create TestCaseLog per testcase → override-result (Failed if pattern fired, Passed if clean) → attach markdown report on TestExecution. Returns flat tracking ids + UI url. |
+| `coach/base.py` | `Coach` protocol + `CoachResult` dataclass. Any callable with `coach(finding, trace) -> CoachResult` is a coach. |
+| `coach/validator.py` | boundary check: coach may only rewrite `remediation` free-text. Rejects empty, overlength, judge-reserved phrases (`might be fine`, `downgrade`, `false positive`, ...). Violation → silent fallback to deterministic. |
+| `coach/mock.py` | `MockCoach` — deterministic template rephrase (severity-keyed openers). Default for CI and offline runs; same interface as VertexCoach for swap-in. |
+| `coach/vertex.py` | `VertexCoach` — Gemini via Vertex AI REST + Bearer auth (env `GCP_PROJECT` + `GCP_ACCESS_TOKEN`). Uses `responseSchema` to force `{"remediation": str}` output; any error / parse failure / missing auth → CoachResult with `error`, orchestrator falls back. |
+| `coach/apply.py` | `coach_report(report, coach, trace)` — runs coach per finding, validates each output, mutates `sections[2]/[4]` in lock-step, records `_coach_diagnostics` audit trail (per-finding pass/fail + reason). |
 
 ## 配置驅動（調規則不動 code）
 
@@ -104,8 +114,13 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   each trace is one run of that suite.
 - **P2 v3 (6/15–18)**: Studio Web Orchestrator Agent as host body, this
   core packaged as a Coded Agent (`uipath pack` / `uipath publish`).
-- **P4 (6/22–24)**: bounded LLM coaching — LLM may rewrite wording of
-  deterministic findings; it may not re-judge, re-score, or add findings.
+- ✅ **P4 LLM coaching (2026-06-13, early)**: `coach/` subpackage with
+  Mock (offline) + Vertex (Gemini via REST) backends. Boundary validator
+  rejects judge-reserved phrases / over-length / empty output; any
+  violation silently falls back to the deterministic remediation. The
+  finding's structure (id, pattern, severity, confidence, evidence
+  spans, waste tokens) is **never** touched by the coach. Auditable
+  via `report._coach_diagnostics`.
 - ✅ **Model pricing (2026-06-13)**: trace-aggregate USD via
   `config/model_pricing.json`. trace.model + in/out token ratio drive
   a weighted per-token price; pricing entry missing emits

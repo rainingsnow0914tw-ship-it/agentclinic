@@ -18,6 +18,7 @@ from pathlib import Path
 
 from .budget import assess as budget_assess
 from .budget import to_markdown as budget_to_markdown
+from .coach import coach_report, make_coach
 from .detect import load_rules, run_detectors
 from .normalize import load_trace_file, normalize
 from .report import build_report, load_pricing, to_markdown
@@ -27,15 +28,20 @@ from .validate import TraceSchemaError
 
 def analyze_pipeline(trace: dict, rules_path=None, scorecard_path=None,
                      budget_assessment: dict | None = None,
-                     pricing_path=None) -> dict:
+                     pricing_path=None,
+                     coach_name: str | None = None) -> dict:
     trace, gaps = normalize(trace)
     rules = load_rules(rules_path)
     findings = run_detectors(trace, gaps, rules)
     result = score(findings, load_scorecard(scorecard_path))
     pricing = load_pricing(pricing_path) if pricing_path else None
-    return build_report(trace, gaps, findings, result,
-                        budget_assessment=budget_assessment,
-                        pricing=pricing)
+    report = build_report(trace, gaps, findings, result,
+                          budget_assessment=budget_assessment,
+                          pricing=pricing)
+    coach = make_coach(coach_name)
+    if coach is not None:
+        coach_report(report, coach, trace=trace)
+    return report
 
 
 def _load_budget_input(path: str | None, budget_rules_path: str | None
@@ -58,7 +64,8 @@ def cmd_analyze(args: argparse.Namespace) -> int:
             args.budget_input, args.budget_rules)
         report = analyze_pipeline(trace, args.rules, args.scorecard,
                                   budget_assessment=budget_assessment,
-                                  pricing_path=args.pricing)
+                                  pricing_path=args.pricing,
+                                  coach_name=args.coach)
     except TraceSchemaError as e:
         print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
               file=sys.stderr)
@@ -154,7 +161,8 @@ def cmd_publish(args: argparse.Namespace) -> int:
         budget = _load_budget_input(args.budget_input, args.budget_rules)
         report = analyze_pipeline(trace, args.rules, args.scorecard,
                                   budget_assessment=budget,
-                                  pricing_path=args.pricing)
+                                  pricing_path=args.pricing,
+                                  coach_name=args.coach)
     except TraceSchemaError as e:
         print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
               file=sys.stderr)
@@ -294,6 +302,9 @@ def main(argv: list[str] | None = None) -> int:
                       help="optional budget input JSON; populates Section 7 "
                       "variance + next-run recommendation. Accepts a raw "
                       "budget input dict or a budget golden wrapper.")
+    p_an.add_argument("--coach", default=None,
+                      choices=["none", "mock", "vertex"],
+                      help="LLM coach backend (default: none / deterministic)")
     p_an.set_defaults(func=cmd_analyze)
 
     p_bg = sub.add_parser("budget", help="run budget guardian on one input")
@@ -312,6 +323,9 @@ def main(argv: list[str] | None = None) -> int:
                        help="UiPath project name to push into (idempotent on name)")
     p_pub.add_argument("--project-prefix", default="ACR",
                        help="UiPath project prefix used when creating the project")
+    p_pub.add_argument("--coach", default=None,
+                       choices=["none", "mock", "vertex"],
+                       help="LLM coach backend (default: none / deterministic)")
     p_pub.set_defaults(func=cmd_publish)
 
     p_go = sub.add_parser("golden", help="run golden regression suite "
