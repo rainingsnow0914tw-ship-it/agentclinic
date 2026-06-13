@@ -24,7 +24,12 @@ python -m agentclinic budget RaidMeter-UiPath\examples\golden_budget\04_time_rac
 # CI gate: run all golden suites (trace + budget auto-dispatch by "kind" field)
 python -m agentclinic golden RaidMeter-UiPath\examples\golden_traces
 python -m agentclinic golden RaidMeter-UiPath\examples\golden_budget
+
+# publish: analyze + push report to UiPath Test Cloud (needs .uipath/app.json)
+python -m agentclinic publish RaidMeter-UiPath\examples\golden_traces\01_hard_hat_loop.golden.json --budget-input RaidMeter-UiPath\examples\golden_budget\04_time_race_parallel_amplifier.golden.json
 ```
+
+Dependency for `publish`: `python -m pip install --user requests`
 
 Dependency: `python -m pip install --user jsonschema`
 
@@ -37,8 +42,12 @@ Dependency: `python -m pip install --user jsonschema`
 | `score.py` | deterministic scorecard (severity weights → level L0–L3 → level cap) |
 | `report.py` | six-section report; Section 5 (gaps) is guaranteed non-empty by validator |
 | `validate.py` | schema boundary — every input trace and every output finding is validated |
-| `cli.py` | `analyze` + `budget` + `golden` commands; golden auto-dispatches trace vs budget by `"kind"` field |
+| `cli.py` | `analyze` + `budget` + `golden` + `publish` commands; golden auto-dispatches trace vs budget by `"kind"` field |
 | `budget/guardian.py` | Budget Guardian v0.1 — deterministic burn-rate forecaster. Input → projection → warning level → recommended action; each output number carries `basis` (how + uncertainty). Same blood as the judge: no LLM, offline. |
+| `uipath/config.py` | resolve `.uipath/app.json` + `UIPATH_*` env overrides; validate required fields (app_id / app_secret / token_endpoint / scope / base_url) |
+| `uipath/auth.py` | client_credentials OAuth exchange + in-process token cache (keyed by token_endpoint+app_id, refreshed 60s early). PAT path is documented dead-end (see `docs/P2_SPIKE_RESULT.md`). |
+| `uipath/client.py` | thin Test Manager REST wrapper — `list_projects`, `find_project_by_name`, `create_project`, `ensure_project` (idempotent), `create_testcase`, `upload_attachment`. No business logic. |
+| `uipath/publish.py` | report → Test Cloud entrypoint: ensure project (idempotent on name) → create testcase (foreignReference = trace_id::run_id) → upload markdown attachment. Returns flat tracking ids + UI url. |
 
 ## 配置驅動（調規則不動 code）
 
@@ -82,13 +91,18 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
 
 ## Roadmap
 
-- **P2 (6/15–18)**: UiPath wrap — Studio Web Orchestrator Agent 為主體,
-  this core packaged as a Coded Agent (`uipath pack` / `uipath publish`),
-  findings written to **Test Cloud** (Test Set / Execution / Case Log).
-  ⚠️ Test Cloud write spike due **before 6/15**.
+- ✅ **P2 spike (2026-06-13)**: Test Cloud write proven via REST + External
+  App; see `docs/P2_SPIKE_RESULT.md`.
+- ✅ **P2 v1 (2026-06-13)**: spike chain Python-ised as `uipath/` module +
+  `publish` CLI; idempotent project, foreignReference-tracked testcase,
+  markdown report attachment.
+- **P2 v2**: walk the full chain (TestSet → TestExecution → TestCaseLog
+  with pass/fail result, attachment hung on TestCaseLog not TestCase).
+- **P2 v3 (6/15–18)**: Studio Web Orchestrator Agent as host body, this
+  core packaged as a Coded Agent (`uipath pack` / `uipath publish`).
 - **P4 (6/22–24)**: bounded LLM coaching — LLM may rewrite wording of
   deterministic findings; it may not re-judge, re-score, or add findings.
-- Redaction layer before anything leaves the machine (P2).
+- Redaction layer before anything leaves the machine.
 - Model pricing table config → USD waste estimates.
 
 — Code 阿寶 2026-06-13 · part of UiPath AgentHack 2026 Track 3 (PRD: ../PRD_AgentClinic_v1.md)

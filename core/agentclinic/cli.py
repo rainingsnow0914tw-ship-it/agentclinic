@@ -5,6 +5,8 @@
   golden  <dir>          regression-run all *.golden.json (the CI gate);
                          dispatches per file: "kind":"budget" -> budget pipeline,
                          otherwise -> trace pipeline (the default, back-compat)
+  publish <trace.json>   analyze trace + push report to UiPath Test Cloud
+                         (requires .uipath/app.json or UIPATH_* env vars)
 
 Exit codes: 0 ok / 1 failures or internal error / 2 input schema error."""
 from __future__ import annotations
@@ -141,6 +143,43 @@ def _compare_golden(golden: dict, report: dict) -> list[str]:
     return problems
 
 
+def cmd_publish(args: argparse.Namespace) -> int:
+    """Analyze a trace and push the report to UiPath Test Cloud."""
+    try:
+        trace = load_trace_file(args.trace)
+        budget = _load_budget_input(args.budget_input, args.budget_rules)
+        report = analyze_pipeline(trace, args.rules, args.scorecard,
+                                  budget_assessment=budget)
+    except TraceSchemaError as e:
+        print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
+              file=sys.stderr)
+        return 2
+    except (json.JSONDecodeError, FileNotFoundError, OSError) as e:
+        print(f"INPUT ERROR: {e}", file=sys.stderr)
+        return 2
+
+    try:
+        from .uipath import load_config, publish_report
+        cfg = load_config(args.uipath_config) if args.uipath_config \
+            else load_config()
+        result = publish_report(
+            report,
+            project_name=args.project_name,
+            project_prefix=args.project_prefix,
+            config=cfg,
+        )
+    except Exception as e:  # noqa: BLE001 -- any push error is a single
+        # failure mode for the CLI: report the type + message, exit 1
+        print(f"PUBLISH FAILED: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
+
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    sc = report["score"]
+    print(f"== published: testcase {result['testcase']['objKey']} "
+          f"(score {sc['value']}, {sc['level']}) ==", file=sys.stderr)
+    return 0
+
+
 def cmd_budget(args: argparse.Namespace) -> int:
     try:
         with open(args.input, encoding="utf-8") as f:
@@ -251,6 +290,19 @@ def main(argv: list[str] | None = None) -> int:
     p_bg.add_argument("input", help="budget input JSON")
     p_bg.add_argument("--out", help="write assessment JSON to this path")
     p_bg.set_defaults(func=cmd_budget)
+
+    p_pub = sub.add_parser("publish",
+                           help="analyze trace + push report to UiPath Test Cloud")
+    p_pub.add_argument("trace", help="trace JSON")
+    p_pub.add_argument("--budget-input",
+                       help="optional budget input JSON (same as analyze)")
+    p_pub.add_argument("--uipath-config",
+                       help="override .uipath/app.json path")
+    p_pub.add_argument("--project-name", default="AgentClinic Reports",
+                       help="UiPath project name to push into (idempotent on name)")
+    p_pub.add_argument("--project-prefix", default="ACR",
+                       help="UiPath project prefix used when creating the project")
+    p_pub.set_defaults(func=cmd_publish)
 
     p_go = sub.add_parser("golden", help="run golden regression suite "
                           "(trace + budget auto-dispatch by 'kind' field)")
