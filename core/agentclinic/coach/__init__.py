@@ -13,17 +13,18 @@ Hard contract (enforced by validator, not aspiration):
 from .apply import coach_report
 from .base import Coach, CoachResult
 from .mock import MockCoach
+from .uipath_llm import UiPathCoach
 from .validator import BoundaryViolation, validate_coached_finding
 from .vertex import VertexCoach
 
 __all__ = [
-    "Coach", "CoachResult", "MockCoach", "VertexCoach",
+    "Coach", "CoachResult", "MockCoach", "VertexCoach", "UiPathCoach",
     "coach_report", "validate_coached_finding", "BoundaryViolation",
 ]
 
 
 def make_coach(name: str | None):
-    """Resolve a coach name (mock|vertex|none|None) to an instance.
+    """Resolve a coach name (mock|vertex|uipath|none|None) to an instance.
 
     Centralises the lookup so CLI + publish + future tests share one map."""
     if not name or name == "none":
@@ -32,4 +33,6 @@ def make_coach(name: str | None):
         return MockCoach()
     if name == "vertex":
         return VertexCoach()
+    if name == "uipath":
+        return UiPathCoach()
     raise ValueError(f"unknown coach backend: {name}")

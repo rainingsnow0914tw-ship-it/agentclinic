@@ -303,8 +303,10 @@ def main(argv: list[str] | None = None) -> int:
                       "variance + next-run recommendation. Accepts a raw "
                       "budget input dict or a budget golden wrapper.")
     p_an.add_argument("--coach", default=None,
-                      choices=["none", "mock", "vertex"],
-                      help="LLM coach backend (default: none / deterministic)")
+                      choices=["none", "mock", "vertex", "uipath"],
+                      help="LLM coach backend. uipath = native via AgentHub "
+                      "LLM Gateway (Track 3 framing: stays in platform, "
+                      "rides AI Trust Layer audit). default: none.")
     p_an.set_defaults(func=cmd_analyze)
 
     p_bg = sub.add_parser("budget", help="run budget guardian on one input")

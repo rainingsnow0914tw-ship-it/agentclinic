@@ -32,6 +32,8 @@ python -m agentclinic publish RaidMeter-UiPath\examples\golden_traces\01_hard_ha
 python -m agentclinic analyze ...trace.json --coach mock     # offline, deterministic
 $env:GCP_PROJECT="my-proj"; $env:GCP_ACCESS_TOKEN=$(gcloud auth print-access-token)
 python -m agentclinic analyze ...trace.json --coach vertex   # Gemini via Vertex AI REST
+# Track 3 framing: platform-native LLM via UiPath AgentHub LLM Gateway
+python -m agentclinic analyze ...trace.json --coach uipath   # needs OR.* scope on .uipath/app.json
 ```
 
 Dependency for `publish` + `vertex`: `python -m pip install --user requests`
@@ -57,6 +59,7 @@ Dependency: `python -m pip install --user jsonschema`
 | `coach/validator.py` | boundary check: coach may only rewrite `remediation` free-text. Rejects empty, overlength, judge-reserved phrases (`might be fine`, `downgrade`, `false positive`, ...). Violation → silent fallback to deterministic. |
 | `coach/mock.py` | `MockCoach` — deterministic template rephrase (severity-keyed openers). Default for CI and offline runs; same interface as VertexCoach for swap-in. |
 | `coach/vertex.py` | `VertexCoach` — Gemini via Vertex AI REST + Bearer auth (env `GCP_PROJECT` + `GCP_ACCESS_TOKEN`). Uses `responseSchema` to force `{"remediation": str}` output; any error / parse failure / missing auth → CoachResult with `error`, orchestrator falls back. |
+| `coach/uipath_llm.py` | `UiPathCoach` — **platform-native** LLM via UiPath AgentHub LLM Gateway (`{base}/agenthub_/llm/api/chat/completions`). Reuses External App from `.uipath/app.json`, filters scope to `OR.*` (LLM Gateway audience is incompatible with `TM.*` -- managed via separate token cache). Requires header `X-UiPath-LlmGateway-NormalizedApi-ModelName`. Default model `gpt-4o-mini-2024-07-18`. Rides AI Trust Layer audit log automatically -- Track 3 framing prize. |
 | `coach/apply.py` | `coach_report(report, coach, trace)` — runs coach per finding, validates each output, mutates `sections[2]/[4]` in lock-step, records `_coach_diagnostics` audit trail (per-finding pass/fail + reason). |
 
 ## 配置驅動（調規則不動 code）
@@ -114,13 +117,14 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   each trace is one run of that suite.
 - **P2 v3 (6/15–18)**: Studio Web Orchestrator Agent as host body, this
   core packaged as a Coded Agent (`uipath pack` / `uipath publish`).
-- ✅ **P4 LLM coaching (2026-06-13, early)**: `coach/` subpackage with
-  Mock (offline) + Vertex (Gemini via REST) backends. Boundary validator
-  rejects judge-reserved phrases / over-length / empty output; any
-  violation silently falls back to the deterministic remediation. The
-  finding's structure (id, pattern, severity, confidence, evidence
-  spans, waste tokens) is **never** touched by the coach. Auditable
-  via `report._coach_diagnostics`.
+- ✅ **P4 LLM coaching (2026-06-13)**: `coach/` subpackage with Mock
+  (offline), Vertex (Gemini via REST), and **UiPath** (AgentHub LLM
+  Gateway, platform-native, rides AI Trust Layer audit) backends.
+  Boundary validator rejects judge-reserved phrases / over-length /
+  empty output; any violation silently falls back to the deterministic
+  remediation. The finding's structure (id, pattern, severity, confidence,
+  evidence spans, waste tokens) is **never** touched by the coach.
+  Auditable via `report._coach_diagnostics`.
 - ✅ **Model pricing (2026-06-13)**: trace-aggregate USD via
   `config/model_pricing.json`. trace.model + in/out token ratio drive
   a weighted per-token price; pricing entry missing emits
