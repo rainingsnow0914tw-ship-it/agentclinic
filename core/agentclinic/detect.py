@@ -339,7 +339,8 @@ def run_detectors(trace: dict, gaps: list[dict], rules: dict) -> list[dict]:
                 "tokens": group["waste_tokens"],
                 "usd": None,
                 "basis": group["waste_basis"]
-                + "; USD unavailable (no pricing table configured)",
+                + "; per-finding USD not split -- see Section 3 for the "
+                "trace-aggregate USD estimate (uses trace in/out ratio)",
             },
             "remediation": rule["remediation"],
             "replay": {

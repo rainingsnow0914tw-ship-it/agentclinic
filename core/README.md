@@ -56,6 +56,7 @@ Dependency: `python -m pip install --user jsonschema`
 | `config/rules.json` | per-pattern: enabled / severity / confidence / thresholds / keywords / suppression / remediation text |
 | `config/scorecard.json` | severity weights, level rules, level caps |
 | `config/report_templates.json` | section titles, gap texts, next-step suggestions |
+| `config/model_pricing.json` | model -> {input, output} per-million-tokens USD; Section 3 uses trace in/out ratio to weight a per-token blended price (override: `--pricing path`) |
 | `budget/budget_rules.json` | budget thresholds (yellow/orange/red/freeze %), action map per user_goal, level shifts per task_mode/user_goal, deadline floor escalation, first-sample calibration (2026-06-13 token incident) |
 
 Override at runtime: `--rules path --scorecard path`, contracts dir via
@@ -105,7 +106,10 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   core packaged as a Coded Agent (`uipath pack` / `uipath publish`).
 - **P4 (6/22–24)**: bounded LLM coaching — LLM may rewrite wording of
   deterministic findings; it may not re-judge, re-score, or add findings.
+- ✅ **Model pricing (2026-06-13)**: trace-aggregate USD via
+  `config/model_pricing.json`. trace.model + in/out token ratio drive
+  a weighted per-token price; pricing entry missing emits
+  `pricing_entry_missing` gap with the model name baked in.
 - Redaction layer before anything leaves the machine.
-- Model pricing table config → USD waste estimates.
 
 — Code 阿寶 2026-06-13 · part of UiPath AgentHack 2026 Track 3 (PRD: ../PRD_AgentClinic_v1.md)

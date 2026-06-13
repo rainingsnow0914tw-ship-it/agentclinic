@@ -20,19 +20,22 @@ from .budget import assess as budget_assess
 from .budget import to_markdown as budget_to_markdown
 from .detect import load_rules, run_detectors
 from .normalize import load_trace_file, normalize
-from .report import build_report, to_markdown
+from .report import build_report, load_pricing, to_markdown
 from .score import load_scorecard, score
 from .validate import TraceSchemaError
 
 
 def analyze_pipeline(trace: dict, rules_path=None, scorecard_path=None,
-                     budget_assessment: dict | None = None) -> dict:
+                     budget_assessment: dict | None = None,
+                     pricing_path=None) -> dict:
     trace, gaps = normalize(trace)
     rules = load_rules(rules_path)
     findings = run_detectors(trace, gaps, rules)
     result = score(findings, load_scorecard(scorecard_path))
+    pricing = load_pricing(pricing_path) if pricing_path else None
     return build_report(trace, gaps, findings, result,
-                        budget_assessment=budget_assessment)
+                        budget_assessment=budget_assessment,
+                        pricing=pricing)
 
 
 def _load_budget_input(path: str | None, budget_rules_path: str | None
@@ -54,7 +57,8 @@ def cmd_analyze(args: argparse.Namespace) -> int:
         budget_assessment = _load_budget_input(
             args.budget_input, args.budget_rules)
         report = analyze_pipeline(trace, args.rules, args.scorecard,
-                                  budget_assessment=budget_assessment)
+                                  budget_assessment=budget_assessment,
+                                  pricing_path=args.pricing)
     except TraceSchemaError as e:
         print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
               file=sys.stderr)
@@ -149,7 +153,8 @@ def cmd_publish(args: argparse.Namespace) -> int:
         trace = load_trace_file(args.trace)
         budget = _load_budget_input(args.budget_input, args.budget_rules)
         report = analyze_pipeline(trace, args.rules, args.scorecard,
-                                  budget_assessment=budget)
+                                  budget_assessment=budget,
+                                  pricing_path=args.pricing)
     except TraceSchemaError as e:
         print(f"SCHEMA ERROR (input rejected, nothing analyzed):\n{e}",
               file=sys.stderr)
@@ -276,6 +281,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--rules", help="override detect-rules.json path")
     parser.add_argument("--scorecard", help="override scorecard.json path")
     parser.add_argument("--budget-rules", help="override budget_rules.json path")
+    parser.add_argument("--pricing",
+                        help="override model_pricing.json path (defaults to "
+                        "the shipped 2026-06-snapshot)")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_an = sub.add_parser("analyze", help="analyze one trace file")

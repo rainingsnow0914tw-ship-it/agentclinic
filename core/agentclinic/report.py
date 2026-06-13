@@ -11,7 +11,10 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from .normalize import detect_pricing_gap
+
 DEFAULT_TEMPLATES_PATH = Path(__file__).parent / "config" / "report_templates.json"
+DEFAULT_PRICING_PATH = Path(__file__).parent / "config" / "model_pricing.json"
 
 
 class ReportContractError(ValueError):
@@ -21,6 +24,52 @@ class ReportContractError(ValueError):
 def load_templates(path: str | Path | None = None) -> dict:
     with open(path or DEFAULT_TEMPLATES_PATH, encoding="utf-8") as f:
         return json.load(f)
+
+
+def load_pricing(path: str | Path | None = None) -> dict:
+    with open(path or DEFAULT_PRICING_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _calc_section_3_usd(trace: dict, known_wasted_tokens: int,
+                        pricing: dict) -> tuple[float | None, str]:
+    """Return (usd, usd_note). None usd is the honest answer when any of the
+    following is true: trace has no model, pricing table has no entry for
+    that model, zero known waste. Weighting uses the trace-level in/out
+    ratio because per-finding fields don't split in/out -- the report is
+    transparent about this approximation in usd_note."""
+    if not known_wasted_tokens:
+        return None, "no known waste tokens to price"
+    model = trace.get("model")
+    if not model:
+        return None, ("trace has no `model` field -- per-finding USD cannot "
+                      "be priced; see Section 5")
+    entry = pricing.get("models", {}).get(model)
+    if entry is None:
+        return None, (f"no pricing entry for model `{model}` in pricing "
+                      f"table {pricing.get('pricing_version', 'unknown')}; "
+                      "see Section 5")
+    events = trace["events"]
+    total_in = sum(ev["token_in"] for ev in events if "token_in" in ev)
+    total_out = sum(ev["token_out"] for ev in events if "token_out" in ev)
+    total = total_in + total_out
+    if total > 0:
+        in_ratio = total_in / total
+        out_ratio = total_out / total
+        ratio_note = f"trace in/out ratio {in_ratio:.0%}/{out_ratio:.0%}"
+    else:
+        in_ratio = out_ratio = 0.5
+        ratio_note = "no per-event tokens -- 50/50 assumed"
+    weighted_per_token = (
+        in_ratio * entry["input"] + out_ratio * entry["output"]
+    ) / 1_000_000
+    usd = round(known_wasted_tokens * weighted_per_token, 4)
+    note = (f"model={model}; {ratio_note}; "
+            f"weighted price ${entry['input']}/M in + "
+            f"${entry['output']}/M out "
+            f"(pricing snapshot {pricing.get('pricing_version', 'unknown')}, "
+            "not billing-grade -- see config/model_pricing.json)")
+    return usd, note
 
 
 def _infer_goal(trace: dict) -> str:
@@ -56,10 +105,17 @@ def _gap_entries(gaps: list[dict], templates: dict) -> list[dict]:
                 "priority": templates.get("fallback_gap_priority", 9),
             })
             continue
+        # gap may carry extra fields (e.g. "model" for pricing_entry_missing)
+        # that the template references via {model} placeholders
+        ctx = {k: v for k, v in gap.items() if k not in ("key", "count")}
+        ctx["count"] = gap.get("count", 0)
         entries.append({
-            "missing": spec["missing"].format(count=gap.get("count", 0)),
-            "impact": spec["impact"],
-            "next_step": spec["next_step"],
+            "missing": spec["missing"].format(**ctx),
+            "impact": spec["impact"].format(**ctx) if "{" in spec["impact"]
+                      else spec["impact"],
+            "next_step": (spec["next_step"].format(**ctx)
+                          if "{" in spec["next_step"]
+                          else spec["next_step"]),
             "priority": spec["priority"],
         })
     entries.extend(templates["standing_gaps"])
@@ -136,8 +192,10 @@ def _recommend_next_run(budget: dict, waste_ratio: float | None,
 
 def build_report(trace: dict, gaps: list[dict], findings: list[dict],
                  score_result: dict, templates: dict | None = None,
-                 budget_assessment: dict | None = None) -> dict:
+                 budget_assessment: dict | None = None,
+                 pricing: dict | None = None) -> dict:
     t = templates or load_templates()
+    pr = pricing if pricing is not None else load_pricing()
 
     total_known = sum(
         ev["token_in"] + ev["token_out"]
@@ -168,8 +226,12 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
         default=None,
     )
 
-    gap_entries = sorted(_gap_entries(gaps, t), key=lambda g: g["priority"])
+    pricing_gap = detect_pricing_gap(trace, pr)
+    effective_gaps = list(gaps) + ([pricing_gap] if pricing_gap else [])
+    gap_entries = sorted(_gap_entries(effective_gaps, t),
+                         key=lambda g: g["priority"])
 
+    usd, usd_note = _calc_section_3_usd(trace, known_waste, pr)
     section_3 = {
         "title": t["section_titles"]["3"],
         "total_known_tokens": total_known,
@@ -185,8 +247,9 @@ def build_report(trace: dict, gaps: list[dict], findings: list[dict],
             }
             if biggest else None
         ),
-        "usd": None,
-        "usd_note": t["usd_note"],
+        "usd": usd,
+        "usd_note": usd_note,
+        "pricing_version": pr.get("pricing_version"),
     }
 
     report = {
@@ -313,7 +376,12 @@ def to_markdown(report: dict) -> str:
             f"- biggest waste point: {b['finding_id']} (`{b['pattern']}`, "
             f"{b['tokens']} tokens)"
         )
-    lines += [f"- USD: {sec3['usd_note']}", "", f"## 4. {s['4']['title']}"]
+    if sec3.get("usd") is not None:
+        lines.append(f"- **USD waste: ${sec3['usd']:.4f}** "
+                     f"({sec3['usd_note']})")
+    else:
+        lines.append(f"- USD: {sec3['usd_note']}")
+    lines += ["", f"## 4. {s['4']['title']}"]
     if not s["4"]["items"]:
         lines.append(s["4"]["note"])
     for i, item in enumerate(s["4"]["items"], 1):

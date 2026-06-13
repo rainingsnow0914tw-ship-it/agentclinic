@@ -1,0 +1,20 @@
+{
+  "pricing_version": "2026-06-snapshot",
+  "currency": "USD",
+  "units": "per_million_tokens",
+  "source_note": "Snapshot estimates as of 2026-06. NOT billing-grade -- verify against the provider's official pricing page before quoting numbers to a customer. Override at runtime via --pricing <path>.",
+  "models": {
+    "claude-opus-4-8":         {"input": 15.00, "output": 75.00},
+    "claude-opus-4-7":         {"input": 15.00, "output": 75.00},
+    "claude-opus-4-6":         {"input": 15.00, "output": 75.00},
+    "claude-sonnet-4-6":       {"input":  3.00, "output": 15.00},
+    "claude-sonnet-4-5":       {"input":  3.00, "output": 15.00},
+    "claude-haiku-4-5":        {"input":  0.80, "output":  4.00},
+    "claude-fable-5":          {"input": 15.00, "output": 75.00},
+    "gemini-3.5-flash":        {"input":  0.075, "output": 0.30},
+    "gemini-3.1-pro-preview":  {"input":  1.25, "output":  5.00},
+    "gemini-2.5-pro":          {"input":  1.25, "output":  5.00},
+    "gpt-5.5":                 {"input": 10.00, "output": 30.00},
+    "gpt-5":                   {"input": 10.00, "output": 30.00}
+  }
+}

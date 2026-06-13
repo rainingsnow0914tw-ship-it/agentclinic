@@ -51,3 +51,14 @@ def normalize(trace: dict) -> tuple[dict, list[dict]]:
     if "model" not in trace:
         gaps.append({"key": "missing_model", "count": 1})
     return trace, gaps
+
+
+def detect_pricing_gap(trace: dict, pricing: dict) -> dict | None:
+    """Emitted by build_report after USD calculation. Lives here in
+    normalize.py so all gap shapes stay in one place."""
+    model = trace.get("model")
+    if not model:
+        return None
+    if model in pricing.get("models", {}):
+        return None
+    return {"key": "pricing_entry_missing", "count": 1, "model": model}

@@ -27,13 +27,6 @@
       "impact": "Section 1 is inferred from event activity only; intent-level drift cannot be judged.",
       "next_step": "Provide a one-line statement of what the agent was supposed to do.",
       "priority": 1
-    },
-    {
-      "key": "no_pricing_table",
-      "missing": "No model pricing configuration",
-      "impact": "Section 3 cannot convert wasted tokens into USD.",
-      "next_step": "Provide the model name and (optionally) your per-token pricing so USD waste can be computed.",
-      "priority": 3
     }
   ],
   "data_gap_text": {
@@ -53,6 +46,12 @@
       "missing": "Model name not provided in trace",
       "impact": "Section 3 USD estimation is impossible; model-specific advice is generic.",
       "next_step": "Include the model identifier used by the agent.",
+      "priority": 3
+    },
+    "pricing_entry_missing": {
+      "missing": "No pricing entry for model `{model}` in the configured pricing table",
+      "impact": "Section 3 cannot quote USD for this model even though the trace declares one.",
+      "next_step": "Add `{model}` to config/model_pricing.json with input/output per-million-token USD, or pass --pricing pointing at a table that has it.",
       "priority": 3
     }
   },
