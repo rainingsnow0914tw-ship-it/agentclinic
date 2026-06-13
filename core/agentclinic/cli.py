@@ -1,7 +1,10 @@
 """CLI entry points.
 
   analyze <trace.json>   run the full pipeline, emit report (md + json)
-  golden  <dir>          regression-run all *.golden.json (the CI gate)
+  budget  <input.json>   run budget guardian on one input, emit assessment
+  golden  <dir>          regression-run all *.golden.json (the CI gate);
+                         dispatches per file: "kind":"budget" -> budget pipeline,
+                         otherwise -> trace pipeline (the default, back-compat)
 
 Exit codes: 0 ok / 1 failures or internal error / 2 input schema error."""
 from __future__ import annotations
@@ -11,6 +14,8 @@ import json
 import sys
 from pathlib import Path
 
+from .budget import assess as budget_assess
+from .budget import to_markdown as budget_to_markdown
 from .detect import load_rules, run_detectors
 from .normalize import load_trace_file, normalize
 from .report import build_report, to_markdown
@@ -118,34 +123,90 @@ def _compare_golden(golden: dict, report: dict) -> list[str]:
     return problems
 
 
+def cmd_budget(args: argparse.Namespace) -> int:
+    try:
+        with open(args.input, encoding="utf-8") as f:
+            inp = json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError, OSError) as e:
+        print(f"INPUT ERROR: {e}", file=sys.stderr)
+        return 2
+    assessment = budget_assess(inp, _load_budget_rules(args.budget_rules))
+    md = budget_to_markdown(assessment)
+    if args.out:
+        Path(args.out).write_text(
+            json.dumps(assessment, ensure_ascii=False, indent=2),
+            encoding="utf-8")
+        print(f"assessment JSON written: {args.out}")
+    else:
+        print(md)
+    print(f"== level {assessment['warning_level']} / "
+          f"action {assessment['recommended_action']} ==")
+    return 0
+
+
+def _load_budget_rules(path: str | None) -> dict | None:
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _compare_budget_golden(golden: dict, assessment: dict) -> list[str]:
+    """Compare budget assessment against expected fields. Numeric fields use
+    per-golden tolerance (default 0); level + action are exact match."""
+    problems: list[str] = []
+    expected = golden.get("expected", {})
+    tolerances = golden.get("tolerances", {})
+    for key, exp in expected.items():
+        actual = assessment.get(key)
+        if isinstance(exp, (int, float)) and exp is not None and actual is not None:
+            tol = tolerances.get(key, 0.0)
+            if abs(actual - exp) > tol:
+                problems.append(f"{key}: got {actual}, expected {exp} "
+                                f"(tol {tol})")
+        else:
+            if actual != exp:
+                problems.append(f"{key}: got {actual!r}, expected {exp!r}")
+    return problems
+
+
 def cmd_golden(args: argparse.Namespace) -> int:
     golden_dir = Path(args.dir)
     files = sorted(golden_dir.glob("*.golden.json"))
     if not files:
         print(f"no *.golden.json found in {golden_dir}", file=sys.stderr)
         return 1
+    budget_rules = _load_budget_rules(args.budget_rules)
     failures = 0
     for path in files:
         try:
             with open(path, encoding="utf-8") as f:
                 golden = json.load(f)
-            report = analyze_pipeline(golden["input_trace"],
-                                      args.rules, args.scorecard)
-            problems = _compare_golden(golden, report)
+            if golden.get("kind") == "budget":
+                assessment = budget_assess(golden["input"], budget_rules)
+                problems = _compare_budget_golden(golden, assessment)
+                summary = (f"level {assessment['warning_level']}, "
+                           f"action {assessment['recommended_action']}")
+            else:
+                report = analyze_pipeline(golden["input_trace"],
+                                          args.rules, args.scorecard)
+                problems = _compare_golden(golden, report)
+                sc = report["score"]
+                n = len(report["sections"]["2"]["findings"])
+                summary = (f"score {sc['value']}, {sc['level']}, "
+                           f"{n} finding(s)")
         except Exception as e:  # noqa: BLE001 — a crash on a golden is a failure,
             # recorded as FAIL; the rest of the suite must still run
             problems = [f"pipeline crashed: {type(e).__name__}: {e}"]
+            summary = ""
         if problems:
             failures += 1
             print(f"FAIL  {path.name}")
             for p in problems:
                 print(f"      - {p}")
         else:
-            sc = report["score"]
-            n = len(report["sections"]["2"]["findings"])
-            print(f"PASS  {path.name}  (score {sc['value']}, {sc['level']}, "
-                  f"{n} finding(s))")
-    print(f"== {len(files) - failures}/{len(files)} golden traces green ==")
+            print(f"PASS  {path.name}  ({summary})")
+    print(f"== {len(files) - failures}/{len(files)} golden green ==")
     return 1 if failures else 0
 
 
@@ -153,8 +214,9 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="agentclinic",
         description="Evidence-bound forensic analysis of AI agent traces.")
-    parser.add_argument("--rules", help="override rules.json path")
+    parser.add_argument("--rules", help="override detect-rules.json path")
     parser.add_argument("--scorecard", help="override scorecard.json path")
+    parser.add_argument("--budget-rules", help="override budget_rules.json path")
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_an = sub.add_parser("analyze", help="analyze one trace file")
@@ -163,7 +225,13 @@ def main(argv: list[str] | None = None) -> int:
     p_an.add_argument("--findings", help="write full report JSON to this path")
     p_an.set_defaults(func=cmd_analyze)
 
-    p_go = sub.add_parser("golden", help="run golden-trace regression suite")
+    p_bg = sub.add_parser("budget", help="run budget guardian on one input")
+    p_bg.add_argument("input", help="budget input JSON")
+    p_bg.add_argument("--out", help="write assessment JSON to this path")
+    p_bg.set_defaults(func=cmd_budget)
+
+    p_go = sub.add_parser("golden", help="run golden regression suite "
+                          "(trace + budget auto-dispatch by 'kind' field)")
     p_go.add_argument("dir", help="directory containing *.golden.json")
     p_go.set_defaults(func=cmd_golden)
 

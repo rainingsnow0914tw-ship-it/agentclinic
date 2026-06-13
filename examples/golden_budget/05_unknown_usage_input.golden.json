@@ -1,0 +1,24 @@
+{
+  "kind": "budget",
+  "name": "unknown_usage_input",
+  "description": "Honest-unknown: user did not read the Claude App settings page so current_app_usage_percent is None. Engine refuses to guess; emits unknown level + ask_human_decision action. Better than fabricating a number that could mislead the next decision.",
+  "input": {
+    "plan_name": "max_5x",
+    "current_app_usage_percent": null,
+    "current_session_tokens": null,
+    "window_minutes": 300,
+    "minutes_into_window": 60,
+    "deadline_minutes": 480,
+    "reserve_percent": 15,
+    "planned_parallel_agents": 1,
+    "task_mode": "balanced",
+    "user_goal": "balanced"
+  },
+  "expected": {
+    "warning_level": "unknown",
+    "recommended_action": "ask_human_decision",
+    "estimated_remaining_percent": null,
+    "burn_rate_percent_per_min": null,
+    "projected_exhaustion_minutes": null
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schema_version": "budget-v0.1",
+  "thresholds": {
+    "yellow": 50,
+    "orange": 70,
+    "red": 85,
+    "freeze": 95
+  },
+  "default_reserve_percent": 15,
+  "level_actions": {
+    "green": ["continue"],
+    "yellow": ["checkpoint"],
+    "orange": ["stop_subagents", "route_to_secondary_pool", "switch_to_safe_mode"],
+    "red": ["ask_human_decision", "compact"],
+    "freeze": ["freeze_mode"]
+  },
+  "primary_by_user_goal": {
+    "save_tokens": {
+      "orange": "stop_subagents",
+      "red": "compact"
+    },
+    "balanced": {
+      "orange": "stop_subagents",
+      "red": "ask_human_decision"
+    },
+    "save_time": {
+      "orange": "route_to_secondary_pool",
+      "red": "ask_human_decision"
+    },
+    "avoid_lockout": {
+      "orange": "stop_subagents",
+      "red": "ask_human_decision"
+    }
+  },
+  "level_shift": {
+    "by_task_mode": {
+      "safe": 1,
+      "balanced": 0,
+      "deadline": -1,
+      "emergency": -1
+    },
+    "by_user_goal": {
+      "save_tokens": 0,
+      "balanced": 0,
+      "save_time": -1,
+      "avoid_lockout": 1
+    }
+  },
+  "deadline_escalation": {
+    "shift_if_projected_lt_deadline": 1,
+    "shift_if_projected_lt_half_deadline": 2
+  },
+  "calibration": {
+    "first_sample": {
+      "date": "2026-06-13",
+      "event": "AgentClinic 36-agent adversarial review token incident",
+      "metrics": {
+        "agents": 36,
+        "duration_minutes": 12,
+        "estimated_tokens_burned": 2040000,
+        "burn_rate_per_minute": 170000
+      },
+      "lesson": "parallel x time = burn rate amplification; no gauge reading caused 5h usage window lockout for driver"
+    }
+  }
+}

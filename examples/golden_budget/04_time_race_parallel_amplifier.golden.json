@@ -1,0 +1,24 @@
+{
+  "kind": "budget",
+  "name": "time_race_parallel_amplifier",
+  "description": "First field-calibrated sample (2026-06-13 token incident shape). 40% usage in 30min looks fine alone, but 6 parallel agents amplify burn 6x -> projected exhaustion 8min vs 300min deadline = certain lockout. Deadline floor escalates to orange even though user picked save_time (-1) and task_mode=deadline (-1). route_to_secondary_pool (sonnet pool) wins because user_goal=save_time prefers fan-out over stop.",
+  "input": {
+    "plan_name": "max_5x",
+    "current_app_usage_percent": 40,
+    "current_session_tokens": 1360000,
+    "window_minutes": 300,
+    "minutes_into_window": 30,
+    "deadline_minutes": 300,
+    "reserve_percent": 15,
+    "planned_parallel_agents": 6,
+    "task_mode": "deadline",
+    "user_goal": "save_time"
+  },
+  "expected": {
+    "warning_level": "orange",
+    "recommended_action": "route_to_secondary_pool",
+    "estimated_remaining_percent": 60,
+    "burn_rate_percent_per_min": 1.333,
+    "projected_exhaustion_minutes": 8.0
+  }
+}

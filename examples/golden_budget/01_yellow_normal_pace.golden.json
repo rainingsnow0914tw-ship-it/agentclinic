@@ -1,0 +1,24 @@
+{
+  "kind": "budget",
+  "name": "yellow_normal_pace",
+  "description": "Normal usage 55% after 90min in a 5h window with 8h deadline. Baseline yellow from threshold, but projected exhaustion (74min) is well under deadline (480min) so deadline floor escalates to red. Personal preferences balanced -- no shift.",
+  "input": {
+    "plan_name": "max_5x",
+    "current_app_usage_percent": 55,
+    "current_session_tokens": 1850000,
+    "window_minutes": 300,
+    "minutes_into_window": 90,
+    "deadline_minutes": 480,
+    "reserve_percent": 15,
+    "planned_parallel_agents": 1,
+    "task_mode": "balanced",
+    "user_goal": "balanced"
+  },
+  "expected": {
+    "warning_level": "red",
+    "recommended_action": "ask_human_decision",
+    "estimated_remaining_percent": 45,
+    "burn_rate_percent_per_min": 0.611,
+    "projected_exhaustion_minutes": 74.0
+  }
+}

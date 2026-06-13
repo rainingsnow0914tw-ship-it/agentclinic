@@ -1,0 +1,24 @@
+{
+  "kind": "budget",
+  "name": "red_reserve_floor",
+  "description": "Usage 87% -- remaining 13% which is at-or-below the 15% reserve floor. Freeze is hard-triggered regardless of deadline or task mode. This is the safety net for last-mile lockout avoidance.",
+  "input": {
+    "plan_name": "max_5x",
+    "current_app_usage_percent": 87,
+    "current_session_tokens": 2900000,
+    "window_minutes": 300,
+    "minutes_into_window": 180,
+    "deadline_minutes": 120,
+    "reserve_percent": 15,
+    "planned_parallel_agents": 1,
+    "task_mode": "balanced",
+    "user_goal": "avoid_lockout"
+  },
+  "expected": {
+    "warning_level": "freeze",
+    "recommended_action": "freeze_mode",
+    "estimated_remaining_percent": 13,
+    "burn_rate_percent_per_min": 0.483,
+    "projected_exhaustion_minutes": 27.0
+  }
+}

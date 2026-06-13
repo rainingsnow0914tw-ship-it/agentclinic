@@ -18,8 +18,12 @@ $env:PYTHONPATH = "RaidMeter-UiPath\core"
 # analyze one trace → six-section report
 python -m agentclinic analyze RaidMeter-UiPath\examples\golden_traces\01_hard_hat_loop.golden.json
 
-# CI gate: run the golden-trace regression suite (all must pass before any deploy)
+# budget guardian: pre-run token-budget burn-rate forecast + warning level
+python -m agentclinic budget RaidMeter-UiPath\examples\golden_budget\04_time_race_parallel_amplifier.golden.json
+
+# CI gate: run all golden suites (trace + budget auto-dispatch by "kind" field)
 python -m agentclinic golden RaidMeter-UiPath\examples\golden_traces
+python -m agentclinic golden RaidMeter-UiPath\examples\golden_budget
 ```
 
 Dependency: `python -m pip install --user jsonschema`
@@ -33,7 +37,8 @@ Dependency: `python -m pip install --user jsonschema`
 | `score.py` | deterministic scorecard (severity weights → level L0–L3 → level cap) |
 | `report.py` | six-section report; Section 5 (gaps) is guaranteed non-empty by validator |
 | `validate.py` | schema boundary — every input trace and every output finding is validated |
-| `cli.py` | `analyze` + `golden` commands; golden comparator is the CI gate |
+| `cli.py` | `analyze` + `budget` + `golden` commands; golden auto-dispatches trace vs budget by `"kind"` field |
+| `budget/guardian.py` | Budget Guardian v0.1 — deterministic burn-rate forecaster. Input → projection → warning level → recommended action; each output number carries `basis` (how + uncertainty). Same blood as the judge: no LLM, offline. |
 
 ## 配置驅動（調規則不動 code）
 
@@ -42,6 +47,7 @@ Dependency: `python -m pip install --user jsonschema`
 | `config/rules.json` | per-pattern: enabled / severity / confidence / thresholds / keywords / suppression / remediation text |
 | `config/scorecard.json` | severity weights, level rules, level caps |
 | `config/report_templates.json` | section titles, gap texts, next-step suggestions |
+| `budget/budget_rules.json` | budget thresholds (yellow/orange/red/freeze %), action map per user_goal, level shifts per task_mode/user_goal, deadline floor escalation, first-sample calibration (2026-06-13 token incident) |
 
 Override at runtime: `--rules path --scorecard path`, contracts dir via
 `AGENTCLINIC_CONTRACTS` env var.
@@ -56,6 +62,14 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   claims to see everything.
 - **No single-signal verdict**: e.g. `hard_hat_loop` requires a chain of
   retries with unchanged state, not one event.
+- **Budget Guardian refuses to guess usage**: if user did not read the
+  Claude App settings page (`current_app_usage_percent: null`), engine emits
+  `warning_level: unknown` + `recommended_action: ask_human_decision`.
+  Better than fabricating a percent that misleads the next decision.
+- **Deadline floor beats personal preference**: in Budget Guardian, the
+  task-mode and user-goal can lower the warning level (more aggressive),
+  but the deadline-based escalation is a floor — objective risk can't be
+  cancelled by preference. Prevents `time_race_parallel` blind spots.
 
 ## Error matrix (per 曦's production review)
 

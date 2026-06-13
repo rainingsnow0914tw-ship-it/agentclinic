@@ -1,0 +1,24 @@
+{
+  "kind": "budget",
+  "name": "orange_save_tokens",
+  "description": "Mid-window 75% usage with save_tokens goal. Base orange + deadline floor escalates (projected 40min vs 240min deadline = under 50%, +2) -> freeze; save_tokens preference cannot lower below objective floor.",
+  "input": {
+    "plan_name": "max_5x",
+    "current_app_usage_percent": 75,
+    "current_session_tokens": 2500000,
+    "window_minutes": 300,
+    "minutes_into_window": 120,
+    "deadline_minutes": 240,
+    "reserve_percent": 15,
+    "planned_parallel_agents": 1,
+    "task_mode": "balanced",
+    "user_goal": "save_tokens"
+  },
+  "expected": {
+    "warning_level": "freeze",
+    "recommended_action": "freeze_mode",
+    "estimated_remaining_percent": 25,
+    "burn_rate_percent_per_min": 0.625,
+    "projected_exhaustion_minutes": 40.0
+  }
+}
