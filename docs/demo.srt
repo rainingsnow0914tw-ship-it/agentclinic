@@ -1,99 +1,131 @@
 1
-00:00:00,000 --> 00:00:09,000
-AI agents ship to production faster than any prior software category —
+00:00:00,000 --> 00:00:08,000
+AI agents are shipping to production faster than any prior software category.
 
 2
-00:00:09,000 --> 00:00:13,000
-but the testing discipline traditional software earned over decades hasn't caught up.
+00:00:08,000 --> 00:00:16,000
+Every team I've worked with ships them the same way — hope it works, pray it scales, debug post-incident.
 
 3
-00:00:13,000 --> 00:00:18,000
-This is AgentClinic. Every finding bound to evidence in the trace, published natively into UiPath Test Cloud.
+00:00:16,000 --> 00:00:23,000
+What's missing is the testing discipline traditional software earned over decades.
 
 4
-00:00:18,000 --> 00:00:27,000
-Seven deterministic detectors, source-controlled. Every finding must point at specific trace events as evidence —
+00:00:23,000 --> 00:00:30,000
+This is AgentClinic. Five golden traces, each published natively into UiPath Test Cloud.
 
 5
-00:00:27,000 --> 00:00:35,000
-a finding without an evidence span is a contract violation, rejected at the schema layer.
+00:00:30,000 --> 00:00:40,000
+Click into the failed log. Look at the reason. This is the difference.
 
 6
-00:00:35,000 --> 00:00:43,000
-The score is reproducible: same trace, same rules, same number, every time.
+00:00:40,000 --> 00:00:50,000
+Not "agent looks bad" — but the exact finding ID, severity, confidence, and trace event IDs that drove the verdict.
 
 7
-00:00:43,000 --> 00:00:49,000
-Run it locally first. The CLI normalizes the trace, detects seven waste patterns,
+00:00:50,000 --> 00:01:00,000
+A reviewer can jump from this dialog straight to events evt_0002 through evt_0004 in the source trace.
 
 8
-00:00:49,000 --> 00:00:55,000
-scores L0 to L3, then publishes natively into Test Cloud.
+00:01:00,000 --> 00:01:07,000
+The chain is unbroken. Every claim points at evidence.
 
 9
-00:00:55,000 --> 00:01:05,000
-No mocks. The execution ID, test set, and case log are all real. Live.
+00:01:07,000 --> 00:01:18,000
+Why does this work? Because the judge and the coach are different things.
 
 10
-00:01:05,000 --> 00:01:14,000
-Same agent, this time triggered from Automation Cloud.
+00:01:18,000 --> 00:01:28,000
+The judge is a deterministic Python rule engine — no LLM, source-controlled rules, same verdict every time.
 
 11
-00:01:14,000 --> 00:01:22,000
-Same pipeline as the local runtime — but now writing directly into Test Manager.
+00:01:28,000 --> 00:01:38,000
+The coach uses an LLM, but is bounded by a validator that blocks judge-reserved phrases.
 
 12
-00:01:22,000 --> 00:01:28,000
-One Test Case per pattern, reusable across runs.
+00:01:38,000 --> 00:01:44,000
+The coach translates findings into remediation. It never judges. Coach, not surveillance.
 
 13
-00:01:28,000 --> 00:01:35,000
-The evidence-bound reason is visible right in the dialog reviewers already use.
+00:01:44,000 --> 00:01:55,000
+Seven detectors. All deterministic, all source-controlled.
 
 14
-00:01:35,000 --> 00:01:42,000
-Quality is no longer a late-stage checkpoint.
+00:01:55,000 --> 00:02:05,000
+Hard hat loop catches blind retries with the state hash unchanged.
 
 15
-00:01:42,000 --> 00:01:48,000
-Four roles, no overlap. Judge is deterministic — the LLM cannot revise the verdict.
+00:02:05,000 --> 00:02:13,000
+Every finding produced must include an evidence span — specific trace event IDs as the contract requires.
 
 16
-00:01:48,000 --> 00:01:55,000
-Coach rides UiPath's AgentHub LLM Gateway, every call inside the AI Trust Layer.
+00:02:13,000 --> 00:02:19,000
+Section five — information gaps. When data is missing, the report admits what it cannot judge.
 
 17
-00:01:55,000 --> 00:02:01,000
-No direct LLM provider API key.
+00:02:19,000 --> 00:02:25,000
+No guessing. No hallucination. That iron rule is what makes a clinic different from a courtroom.
 
 18
-00:02:01,000 --> 00:02:05,000
-Test Cloud is the system of record. UiPath ties it all together.
+00:02:25,000 --> 00:02:35,000
+Run it locally first. The CLI normalizes the trace, runs the seven detectors, scores L0 to L3.
 
 19
-00:02:05,000 --> 00:02:13,000
-Every line of source, every commit message, every documentation file in this repository
+00:02:35,000 --> 00:02:50,000
+Then drives the full Test Manager API chain — project, test case, test set, execution, case log, override, attachment.
 
 20
-00:02:13,000 --> 00:02:18,000
-was written by Claude Code over eleven days.
+00:02:50,000 --> 00:03:00,000
+Every step real, every ID a live resource. publish_error null, result_override_error null. Reproducible.
 
 21
-00:02:18,000 --> 00:02:22,000
-Twenty-plus commits, every one visible in the log.
+00:03:00,000 --> 00:03:10,000
+Same agent, this time triggered from Automation Cloud.
 
 22
-00:02:22,000 --> 00:02:30,000
-The human role was driver — framing, vetting, correcting, performing the GUI actions Claude can't.
+00:03:10,000 --> 00:03:20,000
+The Orchestrator process invokes the Coded Agent — same pipeline, credentials from env vars on the process.
 
 23
-00:02:30,000 --> 00:02:36,000
-Repository public, MIT licensed, CI green, error matrix documented.
+00:03:20,000 --> 00:03:30,000
+The job completes. Back in Test Manager, a new execution appears.
 
 24
-00:02:36,000 --> 00:02:40,000
-Drop a trace in, get an audit trail.
+00:03:30,000 --> 00:03:40,000
+Open the failed log, open the override dialog — and there it is.
 
 25
-00:02:40,000 --> 00:02:45,000
-AgentClinic — coach, not surveillance. Thank you.
+00:03:40,000 --> 00:03:50,000
+The same multi-line evidence-bound reason. Same finding ID. Same trace event IDs.
+
+26
+00:03:50,000 --> 00:03:55,000
+Cloud runtime writes the same audit record as local runtime, every time.
+
+27
+00:03:55,000 --> 00:04:05,000
+Four roles, no overlap. Judge deterministic — LLM cannot revise the verdict.
+
+28
+00:04:05,000 --> 00:04:13,000
+Coach rides UiPath's AgentHub LLM Gateway, every call inside the AI Trust Layer.
+
+29
+00:04:13,000 --> 00:04:20,000
+No direct LLM provider API key. Test Cloud is the system of record. Orchestrator ties it all together.
+
+30
+00:04:20,000 --> 00:04:30,000
+Six native UiPath components — Track 3 framing: quality as a continuous, governed capability.
+
+31
+00:04:30,000 --> 00:04:38,000
+Repository public, MIT licensed. CI green across trace goldens, budget goldens, and Coded Agent build.
+
+32
+00:04:38,000 --> 00:04:45,000
+Every line written by Claude Code over eleven days — twenty-plus commits, every one in the log.
+
+33
+00:04:45,000 --> 00:04:50,000
+Drop a trace in, get an audit trail. AgentClinic — coach, not surveillance. Thank you.
