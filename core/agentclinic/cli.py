@@ -326,8 +326,10 @@ def main(argv: list[str] | None = None) -> int:
     p_pub.add_argument("--project-prefix", default="ACR",
                        help="UiPath project prefix used when creating the project")
     p_pub.add_argument("--coach", default=None,
-                       choices=["none", "mock", "vertex"],
-                       help="LLM coach backend (default: none / deterministic)")
+                       choices=["none", "mock", "vertex", "uipath"],
+                       help="LLM coach backend. uipath = native via AgentHub "
+                       "LLM Gateway (Track 3 framing: stays in platform, "
+                       "rides AI Trust Layer audit). default: none.")
     p_pub.set_defaults(func=cmd_publish)
 
     p_go = sub.add_parser("golden", help="run golden regression suite "
