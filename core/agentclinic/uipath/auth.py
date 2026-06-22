@@ -43,13 +43,21 @@ def get_access_token(cfg: dict, *, force_refresh: bool = False) -> str:
 
 
 def _exchange(cfg: dict) -> tuple[str, int]:
+    # UiPath identity rejects mixed-audience scope in one exchange
+    # (TM.* + OR.* together -> {"error":"invalid_scope"}). Test Cloud publish
+    # only needs TM.*; filter the External App's full scope list to that
+    # subset at exchange time. The Coach LLM Gateway path keeps its own
+    # OR.*-scoped token (see coach/uipath_llm.py) and never shares this cache.
+    tm_scope = " ".join(
+        s for s in cfg["scope"].split() if s.startswith("TM.")
+    )
     r = requests.post(
         cfg["token_endpoint"],
         data={
             "grant_type": "client_credentials",
             "client_id": cfg["app_id"],
             "client_secret": cfg["app_secret"],
-            "scope": cfg["scope"],
+            "scope": tm_scope,
         },
         timeout=30,
     )

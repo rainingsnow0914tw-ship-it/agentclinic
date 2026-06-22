@@ -69,11 +69,16 @@ def publish_report(report: dict, *,
 
     # 3) TestSet — one per publish (named after trace+run, deterministic)
     testset_name = f"run:{trace_id}/{run_id}"
+    finding_ids = sorted(f["finding_id"] for f in findings)
+    finding_ids_str = ", ".join(finding_ids) if finding_ids else "(none)"
     testset = client.create_testset(
         project_id, name=testset_name,
-        description=(f"AgentClinic run -- schema={schema_version}, "
-                     f"score={score['value']}/100, "
-                     f"{len(findings)} finding(s)"),
+        description=(
+            f"AgentClinic run | schema={schema_version} | "
+            f"score={score['value']}/100 | "
+            f"findings={len(findings)} [{finding_ids_str}] | "
+            f"trace_id={trace_id} run_id={run_id}"
+        ),
         source="ThirdParty",
         source_details=f"AgentClinic core / trace {trace_id}",
     )
@@ -87,19 +92,23 @@ def publish_report(report: dict, *,
 
     # 5) TestExecution — one per publish, links back via foreign id form
     testcase_id_list = [tc["id"] for tc in pattern_to_testcase.values()]
+    fired_patterns = {f["pattern"] for f in findings}
+    fired_patterns_str = ", ".join(sorted(fired_patterns)) or "(none)"
     execution = client.create_testexecution(
         project_id, testset_id, testcase_id_list,
         name=f"exec:{trace_id}/{run_id}",
-        description=(f"AgentClinic execution for trace {trace_id}, "
-                     f"run {run_id}; result mapping: pattern fired = "
-                     f"Failed, pattern clean = Passed"),
+        description=(
+            f"AgentClinic execution | trace {trace_id} run {run_id} | "
+            f"schema {schema_version} | "
+            f"result map: pattern fired -> Failed, clean -> Passed | "
+            f"fired patterns: [{fired_patterns_str}]"
+        ),
         source="ThirdParty",
         source_details=f"AgentClinic core / {schema_version}",
     )
     execution_id = execution["id"]
 
     # 6) TestCaseLog per testcase, then override result based on findings
-    fired_patterns = {f["pattern"] for f in findings}
     logs: list[dict] = []
     for pattern, tc in pattern_to_testcase.items():
         log = client.create_testcaselog(
@@ -181,8 +190,21 @@ def _result_reason(pattern: str, fired: bool, findings: list[dict]) -> str:
                 "trace; PASS by absence of evidence.")
     matching = [f for f in findings if f["pattern"] == pattern]
     n = len(matching)
-    confidences = sorted({f.get("confidence") for f in matching
-                          if f.get("confidence") is not None})
-    return (f"AgentClinic detected pattern `{pattern}` -- "
-            f"{n} finding(s); confidence: {confidences}. "
-            "Evidence-bound by finding_schema_v1; see attached report.")
+    # Each finding line: RM-F-... | severity=X confidence=Y | events: evt_a, evt_b
+    # — the trace_event_ids are the evidence anchors a reviewer can jump back to.
+    lines = [f"AgentClinic detected pattern `{pattern}` -- {n} finding(s):"]
+    for f in matching:
+        fid = f.get("finding_id", "?")
+        sev = f.get("severity", "?")
+        conf = f.get("confidence")
+        event_ids = [
+            span.get("trace_event_id")
+            for span in f.get("evidence_spans", [])
+            if span.get("trace_event_id")
+        ]
+        events_str = ", ".join(event_ids) if event_ids else "(no spans)"
+        lines.append(
+            f"  {fid} | severity={sev} confidence={conf} | events: {events_str}"
+        )
+    lines.append("Evidence-bound by finding_schema_v1; see attached report.")
+    return "\n".join(lines)
