@@ -1,0 +1,143 @@
+1
+00:00:00,000 --> 00:00:08,000
+AI agents are shipping to production faster than any prior software category —
+
+2
+00:00:08,000 --> 00:00:15,000
+but the testing discipline traditional software earned over decades hasn't caught up.
+
+3
+00:00:15,000 --> 00:00:21,000
+This is AgentClinic. Every finding bound to evidence in the trace,
+
+4
+00:00:21,000 --> 00:00:27,000
+every result published natively into UiPath Test Cloud as the system of record.
+
+5
+00:00:27,000 --> 00:00:30,000
+Coach, not surveillance. Five minutes. Here's how it works.
+
+6
+00:00:30,000 --> 00:00:40,000
+This agent retried the same broken deploy four times. State hash unchanged,
+
+7
+00:00:40,000 --> 00:00:48,000
+no error log read in between. Seven thousand four hundred tokens, wasted.
+
+8
+00:00:48,000 --> 00:00:58,000
+A general-purpose LLM can describe this trace, but it can't tell you which event drove the verdict,
+
+9
+00:00:58,000 --> 00:01:03,000
+or verify its own claim.
+
+10
+00:01:03,000 --> 00:01:15,000
+What we need is an audit trail — and it needs to live in the release-gate system the team already uses.
+
+11
+00:01:15,000 --> 00:01:25,000
+Seven deterministic detectors, source-controlled.
+
+12
+00:01:25,000 --> 00:01:35,000
+Every finding must point at specific trace events as evidence —
+
+13
+00:01:35,000 --> 00:01:45,000
+a finding without an evidence span is a contract violation, rejected at the schema layer.
+
+14
+00:01:45,000 --> 00:01:55,000
+The score is reproducible: same trace, same rules, same number, every time.
+
+15
+00:01:55,000 --> 00:02:05,000
+Section five is the iron rule that matters most. When data is missing, we say so.
+
+16
+00:02:05,000 --> 00:02:15,000
+No guessing. No hallucination. The report admits exactly what it cannot judge —
+
+17
+00:02:15,000 --> 00:02:30,000
+that's how a clinic differs from a courtroom.
+
+18
+00:02:30,000 --> 00:02:40,000
+Same agent, this time triggered from Automation Cloud.
+
+19
+00:02:40,000 --> 00:02:50,000
+Same pipeline as the local runtime, but now writing the result straight into Test Manager.
+
+20
+00:02:50,000 --> 00:03:00,000
+One Test Case per pattern, reusable across runs.
+
+21
+00:03:00,000 --> 00:03:10,000
+One Test Set, one Execution per publish.
+
+22
+00:03:10,000 --> 00:03:20,000
+A per-pattern log with the evidence-bound reason visible right in the dialog the reviewer already uses.
+
+23
+00:03:20,000 --> 00:03:25,000
+The full markdown report attached.
+
+24
+00:03:25,000 --> 00:03:30,000
+Quality is no longer a late-stage checkpoint.
+
+25
+00:03:30,000 --> 00:03:35,000
+It's a continuous, governed capability — exactly the shape Track 3 is asking for.
+
+26
+00:03:35,000 --> 00:03:42,000
+Four roles, no overlap.
+
+27
+00:03:42,000 --> 00:03:50,000
+Judge is deterministic — the LLM cannot revise the verdict.
+
+28
+00:03:50,000 --> 00:04:00,000
+Coach rides UiPath's AgentHub LLM Gateway, so every LLM call stays inside the AI Trust Layer
+
+29
+00:04:00,000 --> 00:04:05,000
+for audit and PII redaction. No direct LLM provider API key.
+
+30
+00:04:05,000 --> 00:04:10,000
+Test Cloud is the system of record.
+
+31
+00:04:10,000 --> 00:04:15,000
+UiPath is the orchestration and governance layer that ties everything together.
+
+32
+00:04:15,000 --> 00:04:25,000
+The whole codebase was written by Claude Code over eleven days.
+
+33
+00:04:25,000 --> 00:04:32,000
+Every commit visible in the git log.
+
+34
+00:04:32,000 --> 00:04:38,000
+Repository public, MIT licensed, CI green, error matrix documented.
+
+35
+00:04:38,000 --> 00:04:42,000
+Drop a trace in, get an audit trail.
+
+36
+00:04:42,000 --> 00:04:45,000
+Thank you.
