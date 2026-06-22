@@ -50,8 +50,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install UiPath SDK
-        run: pip install "uipath>=2.10.0,<2.11.0"
+      - name: Install UiPath SDK + runtime deps
+        # uipath init imports main.py, which transitively imports core/
+        # which uses requests + jsonschema. Install the pyproject runtime
+        # deps explicitly here -- uipath SDK doesn't pull them.
+        run: pip install "uipath>=2.10.0,<2.11.0" jsonschema rfc3339-validator pydantic requests
 
       - name: Regenerate Pydantic schema
         run: uipath init --no-agents-md-override
