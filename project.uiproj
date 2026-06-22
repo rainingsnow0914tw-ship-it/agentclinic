@@ -1,0 +1,6 @@
+{
+  "ProjectType": "Function",
+  "Name": "agentclinic-coded-agent",
+  "Description": "AgentClinic \u2014 deterministic forensic analysis of AI agent traces (UiPath Coded Agent entry)",
+  "MainFile": null
+}
