@@ -45,10 +45,13 @@
   - `core/agentclinic/coach/validator.py`
   - `examples/golden_traces/01_hard_hat_loop.golden.json`
   - 上次跑 publish 留下的 `report.md`(或自己 `--report out.md` 跑一份)
-- [ ] **終端機** cwd 在 `RaidMeter-UiPath`,publish 指令**預打好不要按 Enter**:
+- [ ] **終端機** cwd 在 `RaidMeter-UiPath`,publish 指令**預打好不要按 Enter**(PowerShell 語法):
+  ```powershell
+  $env:PYTHONPATH = "core"
+  $env:PYTHONUTF8 = "1"
+  python -m agentclinic publish examples\golden_traces\01_hard_hat_loop.golden.json --project-name "AgentClinic Reports v2" --project-prefix ACR2 --coach uipath
   ```
-  PYTHONPATH=core python -m agentclinic publish examples/golden_traces/01_hard_hat_loop.golden.json --project-name "AgentClinic Reports v2" --project-prefix ACR2 --coach uipath
-  ```
+  (若用 Git Bash 改 `PYTHONPATH=core PYTHONUTF8=1 python -m agentclinic publish examples/golden_traces/...` 一行)
 - [ ] **桌面背景乾淨**(沒個人照 / 無關 app 開著)
 - [ ] **瀏覽器書籤列隱藏**(`Ctrl+Shift+B`)
 - [ ] **Windows Focus Assist**「Alarms only」
