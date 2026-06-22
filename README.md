@@ -1,5 +1,6 @@
 # AgentClinic
 
+[![CI](https://github.com/rainingsnow0914tw-ship-it/agentclinic/actions/workflows/ci.yml/badge.svg)](https://github.com/rainingsnow0914tw-ship-it/agentclinic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![UiPath: Coded Agent](https://img.shields.io/badge/UiPath-Coded%20Agent-FA4616.svg)](https://docs.uipath.com/)
