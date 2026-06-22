@@ -4,34 +4,67 @@
     "entryPoints": [
         {
             "filePath": "main",
-            "uniqueId": "8603da97-927e-4506-88b2-fda85e5b6945",
+            "uniqueId": "549befdc-e388-4568-9860-2d2bc3e2bfcd",
             "type": "function",
             "input": {
                 "type": "object",
                 "properties": {
                     "trace": {
+                        "additionalProperties": true,
+                        "description": "Normalized agent trace dict (schema: TraceSchema v1)",
+                        "title": "Trace",
                         "type": "object"
+                    },
+                    "publish_to_test_cloud": {
+                        "default": true,
+                        "description": "If true, push the report to UiPath Test Cloud after analyze",
+                        "title": "Publish To Test Cloud",
+                        "type": "boolean"
+                    },
+                    "project_name": {
+                        "default": "AgentClinic Reports v2",
+                        "description": "UiPath Test Manager project name (idempotent on name)",
+                        "title": "Project Name",
+                        "type": "string"
+                    },
+                    "project_prefix": {
+                        "default": "ACR2",
+                        "description": "Project prefix used when creating the project",
+                        "title": "Project Prefix",
+                        "type": "string"
                     }
                 },
                 "required": [
                     "trace"
-                ]
+                ],
+                "title": "Input"
             },
             "output": {
                 "type": "object",
                 "properties": {
                     "report": {
+                        "additionalProperties": true,
+                        "description": "Deterministic forensic report (schema: report-v2)",
+                        "title": "Report",
                         "type": "object"
+                    },
+                    "test_cloud": {
+                        "additionalProperties": true,
+                        "type": "object"
+                    },
+                    "publish_error": {
+                        "type": "string"
                     }
                 },
                 "required": [
                     "report"
-                ]
+                ],
+                "title": "Output"
             },
             "graph": {
                 "nodes": [
                     {
-                        "id": "main.py:30",
+                        "id": "main.py:80",
                         "name": "main",
                         "type": "function",
                         "metadata": {
