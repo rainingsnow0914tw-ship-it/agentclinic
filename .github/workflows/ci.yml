@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  trace-goldens:
+    name: Trace goldens regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install runtime dependencies
+        run: pip install jsonschema rfc3339-validator pydantic requests
+
+      - name: Run trace golden suite
+        run: PYTHONPATH=core python -m agentclinic golden examples/golden_traces
+
+  budget-goldens:
+    name: Budget goldens regression
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install runtime dependencies
+        run: pip install jsonschema rfc3339-validator pydantic requests
+
+      - name: Run budget golden suite
+        run: PYTHONPATH=core python -m agentclinic golden examples/golden_budget
+
+  build-coded-agent:
+    name: Build Coded Agent .nupkg
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install UiPath SDK
+        run: pip install "uipath>=2.10.0,<2.11.0"
+
+      - name: Regenerate Pydantic schema
+        run: uipath init --no-agents-md-override
+
+      - name: Pack Coded Agent
+        run: uipath pack
+
+      - name: Verify .nupkg present
+        run: ls -la .uipath/*.nupkg
