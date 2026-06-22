@@ -34,11 +34,11 @@ a recording script).
 
 ## Field: `Inspiration`
 
-> 🐱 Every team I've worked with ships AI agents the same way: hope it works, pray it scales, debug post-incident. Existing eval harnesses score outputs — they don't tell you **which trace event drove the verdict**, or admit when they can't tell.
+> 🔍 Every team I've worked with ships AI agents the same way: hope it works, pray it scales, debug post-incident. Existing eval harnesses score outputs — they don't tell you **which trace event drove the verdict**, or admit when they can't tell.
 >
 > The turning question wasn't "is this agent good?" but **"can the review point at the evidence?"** If the answer is no, you're judging vibes.
 >
-> AgentClinic is what happens when you build a clinic instead of a courtroom — every finding tied to a specific event in the trace, every score reproducible from source-controlled rules, every coaching line forbidden from inventing diagnoses. Coach, not surveillance.
+> AgentClinic is what happens when you build a clinic instead of a courtroom — every finding tied to a specific event in the trace, every score reproducible from source-controlled rules, every coaching line forbidden from inventing diagnoses.
 
 (118 words ✓)
 
@@ -71,13 +71,13 @@ a recording script).
 > - **Recorder** = UiPath Test Cloud via Test Manager REST v2.
 > - **Orchestrator** = UiPath Orchestrator Process + AI Trust Layer.
 >
-> **Stack:** Python 3.11+, Pydantic for the Coded Agent boundary, jsonschema for the trace/finding contracts, UiPath Python SDK 2.10.x for `pack` / `publish` / `run`. No external LLM API key — coach calls `{base}/agenthub_/llm/api/chat/completions` with an OR.* token. Everything inside UiPath's governance plane.
+> **Stack:** Python 3.11+, Pydantic for the Coded Agent boundary, jsonschema for the trace/finding contracts, UiPath Python SDK 2.10.x for `pack` / `publish` / `run`. **No direct LLM provider API key** — every coach call routes through UiPath's AgentHub LLM Gateway, so the LLM stays inside the AI Trust Layer for audit and PII redaction.
 >
-> **Test Cloud integration was reverse-engineered.** Personal Access Token didn't work on the hackathon tenant (five separate 401 evidence points). Pivoted to External Application + client_credentials, then discovered UiPath identity rejects mixed-audience scopes (`TM.*` + `OR.*` in one exchange returns `invalid_scope`). Fix: each backend caches its own token, scoped to one audience. Full forensic write-up in `docs/P2_SPIKE_RESULT.md`.
+> **Test Cloud integration was reverse-engineered.** PAT didn't work on the hackathon tenant; pivoted to External Application + client_credentials; discovered UiPath identity rejects mixed-audience scopes (`TM.*` + `OR.*` in one exchange returns `invalid_scope`). Each backend caches its own audience-scoped token. Full forensic write-up of auth + scope landmines in `docs/P2_SPIKE_RESULT.md`.
 >
 > **End-to-end with Claude Code.** Every line of source, every commit, every doc in this repo was written by Claude Code in an 11-day pair-programming session. Human role was driver — framing, vetting, correcting, performing GUI actions Claude can't.
 
-(212 words — trim to 200 if Devpost complains)
+(193 words ✓)
 
 ---
 
@@ -97,13 +97,13 @@ a recording script).
 
 ## Field: `Accomplishments that we're proud of`
 
-> 🎯 **Three Track 3 risks fully closed.** Track 3 calls out three failure modes — thin-shell (UiPath as webhook), Test Cloud not actually integrated, external LLM as BYOM shell. AgentClinic closes all three: native Coded Agent + Process deployment + Cloud runtime; full Test Cloud chain visible in `ACR2:79-84` covering score levels L0 through L3; LLM rides AgentHub LLM Gateway under Trust Layer governance — no external API key.
+> 🎯 **Three Track 3 risks fully closed.** Track 3 calls out three failure modes — thin-shell (UiPath as webhook), Test Cloud not actually integrated, external LLM as BYOM shell. AgentClinic closes all three: native Coded Agent + Process deployment + Cloud runtime; full Test Cloud chain visible in `ACR2:79-84` covering score levels L0 through L3; LLM rides AgentHub LLM Gateway under Trust Layer governance — no direct provider API key, full audit trail.
 >
 > 🔍 **Every claim bound to evidence.** Not a single finding exists without an `evidence_spans` list pointing at concrete `trace_event_id`s. The override-result reason in each Test Case Log is multi-line and explicit. A reviewer opening Test Cloud doesn't see "agent looks bad" — they see exactly which trace events drove the verdict.
 >
 > 📜 **Production error handling, written down.** Seven failure modes mapped to concrete line numbers in `docs/ERROR_MATRIX.md`. Exit codes are a strict contract: 0 ok, 1 analysis failure, 2 input failure. CI gates can act on it.
 >
-> 🤖 **Coded with Claude Code, end-to-end, substantively integrated.** Sixteen commits authored by Claude Code, README includes a commit-by-commit ledger + candid section describing where Claude proposed and where the driver corrected.
+> 🤖 **Coded with Claude Code, end-to-end, substantively integrated.** 20+ commits authored by Claude Code, README includes a commit-by-commit ledger + candid section describing where Claude proposed and where the driver corrected.
 
 (173 words ✓)
 
@@ -131,7 +131,7 @@ a recording script).
 >
 > 🔁 **Self-discovered patterns.** Seven detectors is the floor. Next layer: automatically *find* new patterns from a corpus of failed runs and propose them as detector candidates — meta-learning for the testing layer itself.
 >
-> 🌐 **Never as a ranking of people.** Team-level views show workflow patterns, not engineer leaderboards. Coach, not surveillance — for individuals, for teams, forever.
+> 🌐 **Never against the engineer.** Team-level views show workflow patterns, never individual leaderboards. AgentClinic is a quality gate for agents — not a sentinel against the people who build them. Coach, not surveillance.
 
 (140 words ✓)
 
@@ -230,13 +230,13 @@ Slide:
 ## 4:15 — 4:45 · Close (30s)
 
 Open GitHub repo page; pan over CI badge (green), README,
-`docs/ERROR_MATRIX.md`, `git log --oneline` showing 25+ commits each
+`docs/ERROR_MATRIX.md`, `git log --oneline` showing every commit
 authored by Claude Code.
 
 > "The whole codebase was written by Claude Code over eleven days,
-> twenty-five commits, every one visible in the git log. Repository
-> public, MIT licensed, CI green, error matrix documented. Drop a
-> trace in, get an audit trail. Thank you."
+> every commit visible in the git log. Repository public, MIT
+> licensed, CI green, error matrix documented. Drop a trace in, get
+> an audit trail. Thank you."
 
 End frame: GitHub URL + `Track 3 · AgentHack 2026`, hold 2 seconds.
 

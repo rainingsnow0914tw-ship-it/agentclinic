@@ -19,7 +19,7 @@ A pre-production clinic for AI agents. Every finding is bound to specific `trace
 - **Evidence-bound, not vibes-bound** — every finding has an `evidence_spans` list pointing at concrete trace events. A finding without an evidence span is a contract violation and is rejected by the schema.
 - **Deterministic judge, bounded coach** — the rule engine produces the verdict; the LLM is only allowed to translate findings into remediation. No revising the score, no inventing findings.
 - **Lives in the release gate you already have** — Test Cloud is the system of record. Re-running the same trace re-uses per-pattern Test Cases; quality history is queryable forever in Test Manager.
-- **Native to UiPath, not a webhook shell** — Coded Agent on Automation Cloud. LLM rides AgentHub LLM Gateway under AI Trust Layer governance. No external API key.
+- **Native to UiPath, not a webhook shell** — Coded Agent on Automation Cloud. LLM rides AgentHub LLM Gateway under AI Trust Layer governance. No direct LLM provider API key — every call routes through UiPath's audit + redaction plane.
 
 ## Why not [other approach]?
 
@@ -225,7 +225,7 @@ See `PRD_AgentClinic_v1.md` §13.
 
 ## Coding agent · Claude Code (AgentHack +2 bonus)
 
-**Every line of source, every commit message, every documentation file in this repository was written by Claude Code** in a long-running pair-programming session with the project driver. Sixteen commits across eleven days:
+**Every line of source, every commit message, every documentation file in this repository was written by Claude Code** in a long-running pair-programming session with the project driver. 20+ commits across eleven days; selected milestones (full log on GitHub):
 
 ```
 0185de6  P1: AgentClinic core v0.1.0 — deterministic evidence-bound forensics
@@ -265,7 +265,7 @@ Exit-code contract:
 - `.uipath/app.json` and `.env` are gitignored. `git ls-files | grep -E '\.uipath/|\.env'` returns nothing.
 - The Coded Agent runtime reads credentials from env vars set on the Orchestrator Process (or, in production, from Orchestrator Asset credentials via `sdk.assets.retrieve_credential()`).
 - All LLM calls go through UiPath AI Trust Layer — audit log + PII redaction handled at the platform layer, not the application.
-- No external LLM API key. No third-party billing. No data leaves the UiPath tenant.
+- No direct LLM provider API key (no OpenAI/Anthropic/Google key in our config). Every call routes through UiPath's AgentHub LLM Gateway with an OR.* token. No third-party billing direct from us. No data leaves the UiPath tenant.
 
 ## Troubleshooting
 
