@@ -36,7 +36,9 @@
 ## 🖥️ Pre-flight checklist(錄影前 5 分鐘做完)
 
 - [ ] **瀏覽器三個 tab** 都已登入
-  - Test Manager:`staging.uipath.com/hackathon26_596/DefaultTenant/testmanager_/ACR2/testexecutions`
+  - Test Manager → **直接導航到 demo execution**(避免從列表找錯條):
+    `https://staging.uipath.com/hackathon26_596/DefaultTenant/testmanager_/ACR2/testexecutions/16ae3abb-f0ee-0b00-5d97-0b49cca9bee1`
+    這是 ACR2:86 / `exec:trace_gold_001/run_deploy_4x`,reason 已經 hotfix 寫真實 evidence-bound 文字。**錄影第 1 + 4 段都用這條**。
   - Orchestrator:Process detail page,`agentclinic-coded-agent 0.1.1`
   - GitHub:`https://github.com/rainingsnow0914tw-ship-it/agentclinic`
 - [ ] **VS Code 五個分頁**(切換用):
@@ -125,6 +127,7 @@
 
 **畫面:**
 - 0-3s:切終端機,publish 指令已預打,**按下 Enter**
+cd "C:\Users\soulf\OneDrive\Desktop\code寶創作天地\AI情報員\RaidMeter-UiPath"; $env:PYTHONPATH="core"; $env:PYTHONUTF8="1"; python -m agentclinic publish examples\golden_traces\01_hard_hat_loop.golden.json --project-name "AgentClinic Reports v2" --project-prefix ACR2 --coach uipath
 - 3-18s:**不要 cut** — 讓真實 CLI 跑 12-15 秒。Token exchange、project ensure、testcase ensure、testset、execution、log、override、attachment upload 一連串輸出在終端機跑出來
 - 18-25s:JSON output 完整顯示,**滑鼠捲到** `test_cloud.execution.id`、`test_cloud.logs[0].result: "Failed"`、`test_cloud.logs[0].result_override_error: null`、`publish_error: null`,每條停 ~1 秒
 - 25-35s:捲到最底 `ui_url` 顯示 — 那個就是 Test Cloud Web UI 連結。然後**靜止** 5 秒讓觀眾看完整 JSON
