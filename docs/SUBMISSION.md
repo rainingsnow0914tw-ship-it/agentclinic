@@ -1,447 +1,252 @@
-# AgentClinic — Devpost Submission Pack
+# Devpost Submission — copy / paste guide
 
-Everything you'd paste into the Devpost submission form, plus a five-
-minute demo video outline. Each section below maps to a field on the
-Devpost project page; copy-paste verbatim or trim per the field's
-character budget.
+Each H2 below is a Devpost form field. The **blockquoted block** under
+each is what you paste into that field; the rest is just framing for
+your eyes. No mental overhead — open the file, find the field, copy
+the quote.
 
----
-
-## Project name
-
-```
-AgentClinic
-```
-
-## Tagline / Elevator pitch  (≤ 200 chars)
-
-```
-A pre-production clinic for AI agents — drop a trace in, get a forensic report where every claim is bound to a trace event, published natively into UiPath Test Cloud.
-```
-
-(195 chars, fits)
-
-## Built with  (tags / technology stack)
-
-```
-uipath-test-cloud
-uipath-coded-agent
-uipath-orchestrator
-uipath-llm-gateway
-uipath-ai-trust-layer
-python
-pydantic
-jsonschema
-claude-code
-anthropic-claude
-```
+Demo video outline lives at the bottom (it's not a paste-target, it's
+a recording script).
 
 ---
 
-## Inspiration
+## Field: `Project name`
 
-AI agents are entering production faster than any prior software
-category, but the testing discipline that traditional software earned
-over decades hasn't followed them in. "It worked on my machine" gets
-multiplied by "and the LLM happened to behave that day." Engineers
-review agent runs by feel; the same blind retry burns the same tokens
-release after release; nobody can say *why* a run was wasteful or
-where the evidence for that judgment lives in the trace.
+> AgentClinic
 
-We've sat through enough post-incident reviews to know the gap. What
-we wanted: a piece of infrastructure where every score points at the
-trace event it came from, every remediation is tied to a real waste
-pattern, and the whole result lands in the existing release-gate
-system that the team already uses — UiPath Test Cloud — rather than
-yet another dashboard nobody opens.
+## Field: `Elevator pitch` (≤ 200 chars)
 
-That became AgentClinic: a pre-production clinic for AI agents, with
-the discipline of a forensic lab.
+> Drop an AI agent's trace in. Get a forensic report where every claim points at a trace event. Published natively into UiPath Test Cloud as the system of record. Coach, not surveillance.
 
----
+(197 chars ✓)
 
-## What it does
+## Field: `Built with` (tags)
 
-Given an AI agent's execution trace, AgentClinic runs a fixed forensic
-pipeline:
+> uipath-test-cloud, uipath-coded-agent, uipath-orchestrator, uipath-llm-gateway, uipath-ai-trust-layer, python, pydantic, jsonschema, claude-code, anthropic-claude
 
-1. **Normalize** the trace against a versioned schema
-   (`trace_schema_v1`). Any agent framework — UiPath-native, third-
-   party, or in-house — can plug in by writing an adapter to this
-   schema; the core engine never branches on agent type.
+## Field: `Try it out links`
 
-2. **Detect** seven well-defined waste patterns (`hard_hat_loop`,
-   `state_unchanged_retry`, `lucky_guess`, `agent_piling_on`,
-   `full_file_read_before_grep`, `redundant_tool_call`,
-   `completion_claim_without_verification`). **Every finding is
-   bound to specific `trace_event_id`s as evidence** — a finding
-   without an evidence span is a contract violation and is rejected.
-
-3. **Score** the run deterministically on an L0–L3 scorecard
-   (severity-weighted), with token-waste accounting in tokens *and*
-   USD (using a trace-aggregate in/out ratio and a versioned pricing
-   snapshot).
-
-4. **Coach (optional)** — an LLM rides UiPath's AgentHub LLM Gateway
-   (so it stays inside the platform's AI Trust Layer for audit + PII
-   redaction) and translates findings into actionable remediation,
-   strictly forbidden from inventing new findings or revising the
-   score.
-
-5. **Publish** the report natively into UiPath Test Cloud: one
-   reusable Test Case per pattern, one Test Set + Execution per
-   publish, per-pattern Test Case Log with override-result reason
-   containing the finding chain (finding_id | severity | confidence |
-   trace_event_ids), and the full markdown report attached to the
-   execution. Re-running the same trace re-uses Test Cases, only
-   writing a new Test Set + Execution row — quality history is
-   queryable in Test Cloud forever.
-
-The agent runs on **UiPath Automation Cloud** as a Coded Agent
-(`uipath pack` / `uipath publish` / `Orchestrator Process`), so any
-existing UiPath workflow can call it as a quality gate — the same way
-existing UiPath tests integrate into release pipelines.
+> Public repo: https://github.com/rainingsnow0914tw-ship-it/agentclinic
+>
+> Test Cloud evidence (ACR2 project on hackathon staging): executions `0bffe91c` / `938e66e5` / `608a0b2e` / `8951d57b` / `822668cc` — five published goldens covering score levels L0 through L3, full evidence-bound chain visible in Test Manager UI.
 
 ---
 
-## How we built it
+## Field: `Inspiration`
 
-**Architecture: four roles, no overlap.**
+> 🐱 Every team I've worked with ships AI agents the same way: hope it works, pray it scales, debug post-incident. Existing eval harnesses score outputs — they don't tell you **which trace event drove the verdict**, or admit when they can't tell.
+>
+> The turning question wasn't "is this agent good?" but **"can the review point at the evidence?"** If the answer is no, you're judging vibes.
+>
+> AgentClinic is what happens when you build a clinic instead of a courtroom — every finding tied to a specific event in the trace, every score reproducible from source-controlled rules, every coaching line forbidden from inventing diagnoses. Coach, not surveillance.
 
-- **Judge** = deterministic rule engine (Python). Runs without an
-  LLM. Cannot be tricked into a wrong verdict because the rules are
-  source-controlled and golden-tested.
-- **Coach** = LLM, bounded. Translates findings into remediation.
-  Forbidden from creating new findings or revising the score, enforced
-  by a boundary validator (`coach/validator.py`) that blocks judge-
-  reserved phrasing.
-- **Recorder** = UiPath Test Cloud — execution + case log + evidence
-  attachment via Test Manager REST v2.
-- **Orchestrator + governance** = UiPath Orchestrator Process + AI
-  Trust Layer.
-
-**Stack.** Python 3.11+, Pydantic for the Coded Agent boundary,
-jsonschema + rfc3339-validator for the trace/finding contracts,
-the UiPath Python SDK 2.10.x for `pack` / `publish` / `run`. No
-external LLM API key — the coach calls
-`{base}/agenthub_/llm/api/chat/completions` with an OR.* token,
-keeping everything inside UiPath's governance plane.
-
-**Test Cloud integration was reverse-engineered.** The Personal Access
-Token path didn't work on the hackathon staging tenant (five separate
-401 evidence points). We pivoted to External Application +
-client_credentials, then discovered UiPath identity rejects mixed-
-audience scopes (`TM.*` + `OR.*` in one exchange returns
-`invalid_scope`). The fix: each backend caches its own token, scoped
-to a single audience. That investigation is documented as a forensic
-write-up in `docs/P2_SPIKE_RESULT.md` and codified in `auth.py`'s
-TM-scope filter.
-
-**A development-pipeline-driven-by-Claude-Code.** Every line of
-source, every commit message, every documentation file in this
-repository was produced by Claude Code in a long-running pair-
-programming session — sixteen commits across eleven days, ranging
-from the P1 deterministic core to the C3 Coded Agent runtime that
-ties everything together. The human role was driver / reviewer /
-domain oracle: framing the problem, vetting platform discoveries
-("UiPath actually puts LLM Gateway under `/agenthub_/llm/api` not
-`/llmgateway_/`, here's the source-code grep that found it"),
-approving architecture pivots, performing the GUI actions Claude
-cannot, and stepping in when Claude overreached (the day Claude
-proposed running 36 verification subagents and burned 5 hours of
-the driver's Claude API window directly produced the project's
-"hand-raised" protocol now codified in the memory).
+(118 words ✓)
 
 ---
 
-## Challenges we ran into
+## Field: `What it does`
 
-**Studio Web's Coded-Agent-inside-Function-Project binding UI is
-still in Preview, and it's unstable.** The Call activity → Function
-binding silently fails to wire arguments. We had bet the project's
-"Studio Web Orchestrator Agent as visible main body" framing on this
-working. After two days fighting it, we pivoted to **Coded Agent →
-`uipath pack/publish` → Orchestrator Process → Cloud runtime** —
-still first-class Studio Web ecosystem deployment, but going around
-the Preview surface entirely. The pivot is documented and defended in
-`README.md §3` as a production-readiness decision.
+> 🩺 Drop an AI agent's execution trace in. AgentClinic runs a fixed forensic pipeline:
+>
+> **Detect** — seven deterministic waste patterns (`hard_hat_loop`, `state_unchanged_retry`, `lucky_guess`, `agent_piling_on`, `full_file_read_before_grep`, `redundant_tool_call`, `completion_claim_without_verification`). Every finding bound to specific `trace_event_id`s as evidence. **No finding may exist without an evidence span** — it's a contract.
+>
+> **Score** — L0 to L3 scorecard, severity-weighted. Token waste accounted in tokens *and* USD using a versioned pricing snapshot.
+>
+> **Coach (optional)** — LLM rides UiPath's AgentHub LLM Gateway, so it stays inside the AI Trust Layer for audit + PII redaction. The coach is forbidden from inventing findings or reversing the score — enforced by a boundary validator that blocks judge-reserved phrasing.
+>
+> **Publish** — native to UiPath Test Cloud. One reusable Test Case per pattern, one Test Set + Execution per publish, per-pattern Test Case Log with override-result reason containing the finding chain, full report.md attached. Re-running the same trace re-uses Test Cases — quality history queryable forever in Test Manager.
+>
+> Track 3's brief asks for "quality as a continuous, intelligent, governed capability." That's the design.
 
-**Test Cloud's permission model has three independent layers, and
-none of them error in a way that tells you which layer is denying.**
-Project-level role assignment (which we automated via API) wasn't
-enough; the user also needed Tenant Administrator role to access the
-Test Manager *application* at all; and on top of that, Test Manager
-needed a **license seat** (separate from access). We discovered all
-three by hitting the same "You do not have the necessary rights to
-access this application" error from three different starting states.
-The result: the README's "Setup Instructions" now walks future users
-through all three layers in one go.
-
-**Override-result API has a (logId, currentResult) unique constraint
-that's not in the docs.** Re-posting an override returns HTTP 409
-`duplicateUniqueConstraint`. We discovered it by re-running a publish
-during testing; the recovery path is documented in
-`docs/ERROR_MATRIX.md` row 5.
-
-**The Cloud runtime's Python environment is a fresh install — only
-deps in `pyproject.toml` are present.** Our first cloud job crashed
-on `ModuleNotFoundError: No module named 'requests'` because we'd
-relied on local pip state. Hotfix v0.1.1 added `requests` to
-`pyproject.toml` and confirmed the rule: local-dev parity is paper
-parity, only the Cloud runtime is real.
+(190 words ✓)
 
 ---
 
-## Accomplishments we're proud of
+## Field: `How we built it`
 
-**Three Track 3 risks fully closed.** The hackathon Track 3 brief
-calls out three failure modes — thin-shell ("UiPath as webhook"),
-Test Cloud not actually integrated, and external LLM acting like a
-BYOM shell. AgentClinic closes all three: native Coded Agent + Process
-deployment + Cloud runtime (not a webhook); full Test Cloud chain
-(project / test case / test set / execution / case log /
-override-result / attachment), with five golden traces covering
-score levels L0 through L3 all visible in `ACR2:79-84`; LLM rides
-the AgentHub Gateway under AI Trust Layer governance, no external
-API key.
+> ⚙️ **Four roles, no overlap.**
+>
+> - **Judge** = deterministic Python rule engine. Runs without an LLM. Can't be tricked into a wrong verdict because rules are source-controlled and golden-tested.
+> - **Coach** = LLM, bounded. Translates findings into remediation. Forbidden from judging, enforced by `coach/validator.py`.
+> - **Recorder** = UiPath Test Cloud via Test Manager REST v2.
+> - **Orchestrator** = UiPath Orchestrator Process + AI Trust Layer.
+>
+> **Stack:** Python 3.11+, Pydantic for the Coded Agent boundary, jsonschema for the trace/finding contracts, UiPath Python SDK 2.10.x for `pack` / `publish` / `run`. No external LLM API key — coach calls `{base}/agenthub_/llm/api/chat/completions` with an OR.* token. Everything inside UiPath's governance plane.
+>
+> **Test Cloud integration was reverse-engineered.** Personal Access Token didn't work on the hackathon tenant (five separate 401 evidence points). Pivoted to External Application + client_credentials, then discovered UiPath identity rejects mixed-audience scopes (`TM.*` + `OR.*` in one exchange returns `invalid_scope`). Fix: each backend caches its own token, scoped to one audience. Full forensic write-up in `docs/P2_SPIKE_RESULT.md`.
+>
+> **End-to-end with Claude Code.** Every line of source, every commit, every doc in this repo was written by Claude Code in an 11-day pair-programming session. Human role was driver — framing, vetting, correcting, performing GUI actions Claude can't.
 
-**Every claim in the report is bound to evidence.** Not a single
-finding exists without an `evidence_spans` list pointing at concrete
-`trace_event_id`s in the source trace. The override-result reason
-written into each Test Case Log is multi-line and explicit:
-
-```
-AgentClinic detected pattern `hard_hat_loop` -- 1 finding(s):
-  RM-F-trace_gold_001-001 | severity=critical confidence=0.9 | events: evt_0002, evt_0003, evt_0004
-Evidence-bound by finding_schema_v1; see attached report.
-```
-
-A reviewer opening Test Cloud doesn't see "agent looks bad" — they
-see exactly which trace events drove the verdict and can jump back
-to those events in the source trace.
-
-**Production-grade error handling, written down.** The seven failure
-modes called out in the PRD (broken JSON / unsupported schema /
-missing fields / LLM timeout / duplicate writes / partial publish
-failure / golden suite crash) each have a documented implementation
-site with line numbers in `docs/ERROR_MATRIX.md`. Exit codes are a
-strict contract: 0 = ok, 1 = analysis-level failure, 2 = input-level
-failure.
-
-**Coded with a coding agent, end-to-end, with substantive
-integration.** Sixteen commits authored by Claude Code, documented
-in the README with a 16-line commit-by-commit ledger and a candid
-section describing where Claude proposed, where the driver corrected,
-and how the project's internal memory grew out of that back-and-
-forth. This is meant as evidence for the AgentHack Coding Agents
-bonus.
+(212 words — trim to 200 if Devpost complains)
 
 ---
 
-## What we learned
+## Field: `Challenges we ran into`
 
-**UiPath has a deep platform story under the hood that the official
-docs underplay.** The real LLM Gateway endpoint lives at
-`/agenthub_/llm/api/chat/completions`, not `/llmgateway_/`, and you
-only find it by grep'ing the SDK source. The TM/OR mixed-scope
-rejection isn't in the API reference. Every one of these was a
-half-day investigation that, once written down, becomes a thirty-
-second decision for the next person. We turned each into a docs/
-artifact (`P2_SPIKE_RESULT.md`, `ERROR_MATRIX.md`) precisely so the
-next team doesn't repeat the dig.
+> 💣 **Studio Web's Coded-Agent-in-Function-Project binding is still Preview, and unstable.** Call activity → Function arguments silently drop. After two days fighting it, we pivoted to **Coded Agent → `uipath pack/publish` → Orchestrator Process → Cloud runtime**. Still first-class Studio Web ecosystem, but going around the broken Preview surface.
+>
+> 🔒 **Test Cloud's permission model has three independent layers, none of which error helpfully.** Project member role wasn't enough — also need Tenant Administrator role to open the Test Manager *application*, **plus** a license seat. We discovered all three by hitting the same "You do not have the necessary rights" from three different starting states. README now walks future users through all three.
+>
+> 🌀 **Override-result API has an undocumented `(logId, currentResult)` unique constraint.** Re-posting an override returns HTTP 409 `duplicateUniqueConstraint`. Found it by re-running a publish during testing; recovery path documented in `docs/ERROR_MATRIX.md`.
+>
+> 📦 **Cloud runtime is a fresh Python install — only `pyproject.toml` deps present.** Our first Cloud job crashed on `ModuleNotFoundError: requests` because local pip state had it but pyproject didn't list it. Hotfix v0.1.1 added `requests` + the rule: local-dev parity is paper parity, only Cloud runtime is real.
 
-**Bounded coaches are dramatically more useful than free-form
-LLM judges.** Early in the project we tried letting the LLM judge
-runs end-to-end. It happily produced confident-sounding judgments
-unrelated to the evidence. The "Judge = deterministic, Coach = LLM
-bounded" split (PRD §4.2) — refusing to let the LLM revise the
-verdict, only translate the findings — was the highest-leverage
-design decision in the entire project. It's also exactly the
-shape of governance the Track 3 brief is asking for.
-
-**Pairing with a coding agent for eleven days teaches you what
-the human role actually is.** Not "give it a prompt and wait" —
-it's framing, vetting, correcting, and remembering. The driver's
-job is to push back when the agent overreaches and to make sure
-the right lessons land in the project memory so they survive
-context windows. We codified that pattern in our project memory
-files; if anything else here is reusable for future teams, that
-process discipline is what we'd point to first.
+(173 words ✓)
 
 ---
 
-## What's next for AgentClinic
+## Field: `Accomplishments that we're proud of`
 
-**Adapters for more agent frameworks.** The trace schema is the
-only boundary; today we ship one adapter (`adapter_claude_code_v1`).
-LangGraph, AutoGen, CrewAI, and OpenAI Agents SDK each need a thin
-adapter that produces conformant `trace_schema_v1.json` documents.
-The detector core never changes — that was the point of the schema.
+> 🎯 **Three Track 3 risks fully closed.** Track 3 calls out three failure modes — thin-shell (UiPath as webhook), Test Cloud not actually integrated, external LLM as BYOM shell. AgentClinic closes all three: native Coded Agent + Process deployment + Cloud runtime; full Test Cloud chain visible in `ACR2:79-84` covering score levels L0 through L3; LLM rides AgentHub LLM Gateway under Trust Layer governance — no external API key.
+>
+> 🔍 **Every claim bound to evidence.** Not a single finding exists without an `evidence_spans` list pointing at concrete `trace_event_id`s. The override-result reason in each Test Case Log is multi-line and explicit. A reviewer opening Test Cloud doesn't see "agent looks bad" — they see exactly which trace events drove the verdict.
+>
+> 📜 **Production error handling, written down.** Seven failure modes mapped to concrete line numbers in `docs/ERROR_MATRIX.md`. Exit codes are a strict contract: 0 ok, 1 analysis failure, 2 input failure. CI gates can act on it.
+>
+> 🤖 **Coded with Claude Code, end-to-end, substantively integrated.** Sixteen commits authored by Claude Code, README includes a commit-by-commit ledger + candid section describing where Claude proposed and where the driver corrected.
 
-**Secrets graduate to Orchestrator Assets.** The Cloud runtime
-currently reads credentials via environment variables on the
-Process. The cleaner production path is `sdk.assets.retrieve_
-credential()` against an Orchestrator Asset of type Credential —
-one line in `main.py`, but it earns the right to ship to a real
-tenant.
-
-**Budget Guardian integration in the report.** `docs/PLAN_P2_and_
-BudgetGuardian.md` §3 describes a Report Section 7 that ties
-deterministic burn-rate forecasts to the same findings — "this run
-burned 7470 tokens in `hard_hat_loop`, you have 22% of the window
-left, projection puts you over budget in 14 minutes." The engine
-is built (`core/agentclinic/budget/`); we ran out of clock to wire
-it into the published Test Cloud record. v0.2.
-
-**CI regression on every PR.** A GitHub Actions workflow that
-runs `python -m agentclinic golden` against the five trace +
-five budget goldens, gating the merge. The local gate already
-runs green; promoting it to CI is a fifteen-minute change once
-the repo is permanent.
-
-**Adversarial waste-pattern coverage.** Seven patterns is the
-floor, not the ceiling. The next layer is automatically *finding*
-new patterns from a corpus of failed agent runs and proposing
-them as new detectors with golden traces — meta-learning for the
-testing layer itself.
+(173 words ✓)
 
 ---
 
-## Try it out
+## Field: `What we learned`
 
-- **Live code:** https://github.com/rainingsnow0914tw-ship-it/agentclinic
-- **Test Cloud evidence:** `ACR2` project on UiPath staging
-  (hackathon26_596), executions `0bffe91c` / `938e66e5` /
-  `608a0b2e` / `8951d57b` / `822668cc` covering score levels
-  L0–L3 with full evidence-bound reasons.
-- **Setup:** `README.md §6` walks through local dev, Coded Agent
-  packaging, and Cloud runtime configuration.
+> 💡 **Bounded coaches beat free-form judges by an embarrassing margin.** Early on we let the LLM judge runs end-to-end. It produced confident-sounding judgments unrelated to the evidence. The split — judge deterministic, coach LLM-bounded — was the highest-leverage decision in the whole project. It's also exactly the governance shape Track 3 is asking for.
+>
+> 🗺️ **The official docs underplay the platform.** Real LLM Gateway is at `/agenthub_/llm/api/`, not `/llmgateway_/`. TM/OR mixed-scope is rejected silently in the docs. Each was a half-day investigation; once written into `docs/`, it's a thirty-second decision for the next team.
+>
+> 🤝 **Pair-programming with a coding agent teaches you what the human role actually is.** Not "prompt and wait" — it's framing, vetting, correcting, and remembering. Our project memory grew out of the corrections; if anything else here is reusable, that process discipline is what we'd point to first.
+
+(130 words ✓)
+
+---
+
+## Field: `What's next for AgentClinic`
+
+> 🛣️ **More adapters.** Trace schema is the only boundary; today we ship one adapter (`adapter_claude_code_v1`). LangGraph, AutoGen, CrewAI, OpenAI Agents SDK each need a thin adapter — the detector core doesn't change.
+>
+> 🔑 **Secrets graduate to Orchestrator Assets.** Env vars work for the demo; production path is `sdk.assets.retrieve_credential()` against a Credential-typed Asset. One line in `main.py`.
+>
+> 📊 **Budget Guardian section in the published report.** The deterministic burn-rate engine is built (`core/agentclinic/budget/`); we ran out of clock to wire it into the Test Cloud record. v0.2.
+>
+> 🔁 **Self-discovered patterns.** Seven detectors is the floor. Next layer: automatically *find* new patterns from a corpus of failed runs and propose them as detector candidates — meta-learning for the testing layer itself.
+>
+> 🌐 **Never as a ranking of people.** Team-level views show workflow patterns, not engineer leaderboards. Coach, not surveillance — for individuals, for teams, forever.
+
+(140 words ✓)
+
+---
+
+## Optional: Before / After framing (paste into `What it does` or `Inspiration` if there's room)
+
+> **Without AgentClinic** — agent fails, engineer reads logs by feel, writes a Slack post-mortem, ships the fix, hopes the next regression catches it.
+>
+> **With AgentClinic** — agent fails, trace lands in Test Cloud as an Execution + Failed Log, override-result reason names the exact `evt_0002, evt_0003, evt_0004` events that drove the verdict, full `report.md` attached. Re-runnable. Auditable. CI-gateable.
 
 ---
 ---
 
-# Demo Video — five-minute outline
+# Demo Video — 5-minute outline (NOT a Devpost paste-target)
 
-Total budget: **4:45 max** (give yourself 15s buffer; Devpost is
-strict about the five-minute cap).
+Recording script for the < 5 min YouTube/Vimeo upload required by
+hackathon rules. Pre-record everything, don't live-debug on camera,
+no copyrighted music.
 
-Tone: confident, plain English, no music with copyright. Screen
-recording with clear voiceover. Pre-record everything; don't try to
-live-debug on camera.
+**Hard cap: 4:45 on the timeline** — leave 15s buffer before the
+Devpost 5:00 limit.
 
-## 0:00 — 0:30 · The hook (30s)
+## 0:00 — 0:30 · Hook (30s)
 
-Open on the Test Manager UI, ACR2 project, executions list with
-five completed runs. Pan over the row showing the failed
-`hard_hat_loop` test case log.
+Open on Test Manager UI, ACR2 project, executions list. Pan over the
+row showing `exec:trace_gold_001/run_deploy_4x` — Failed, red Results
+bar. Click the failed Test Case Log, show the multi-line evidence-
+bound reason for 4 seconds (let viewers read it).
 
-Voiceover:
-> "AI agents are shipping to production faster than any prior
-> software category, but the testing discipline traditional software
-> built over decades hasn't caught up. AgentClinic is a pre-
-> production clinic for AI agents — every finding bound to evidence
-> in the trace, published natively into UiPath Test Cloud as the
-> system of record. Five minutes; here's how it works."
+> "AI agents are shipping to production faster than any prior software
+> category. The testing discipline that traditional software earned
+> over decades hasn't caught up. AgentClinic is a pre-production
+> clinic — every finding bound to evidence in the trace, every result
+> published natively into UiPath Test Cloud as the system of record.
+> Coach, not surveillance. Five minutes; here's how it works."
 
 ## 0:30 — 1:15 · The problem (45s)
 
-Slide or short live demo of an agent trace going wrong:
-- Agent retries `gcloud run deploy` four times, no reads between,
-  state hash never changes, ~7,400 wasted tokens.
-- Cut to a typical "ChatGPT review" reading the same trace and
-  producing confident-but-unsourced opinions.
+Slide or short clip of an agent retrying `gcloud run deploy` four
+times, never reading the error, 7,400 wasted tokens. Cut to a typical
+ChatGPT "review this trace" producing confident-but-unsourced
+opinions.
 
-Voiceover:
-> "This is the trace of an agent burning seven thousand tokens
-> retrying the same broken command. A general-purpose LLM can talk
-> about it but can't tell you *which event* drove the verdict, or
-> verify its own claim. We need an audit trail — and we need it in
-> the release-gate system the team already uses."
+> "An agent retried the same broken deploy four times. ChatGPT can
+> talk about this trace — it can't tell you *which event* drove the
+> verdict, or verify its own claim. We need an audit trail, in the
+> release-gate system the team already uses."
 
-## 1:15 — 2:30 · The forensic pipeline (75s)
+## 1:15 — 2:30 · Forensic pipeline (75s)
 
-Live demo (or pre-recorded `uipath run`):
-- Show `main.py` Input — `trace` + `publish_to_test_cloud=true`
-- Run it locally first: `python -m agentclinic publish ...
-  --coach uipath`
-- Pan through the seven detectors briefly (`detect.py` filename
-  bar)
-- Open the resulting `report.md`: §2 finding RM-F-trace_gold_001-001,
-  show the `evidence_spans` list with the three trace_event_ids it's
-  bound to. §5 information gaps — what the report explicitly admits
-  it cannot judge.
+Live or pre-recorded: `main.py`, `python -m agentclinic publish ...
+--coach uipath`. Pan through the seven detectors quickly. Open
+`report.md`: §2 finding, show the `evidence_spans` list with three
+`trace_event_id`s, §5 information gaps where the report admits what
+it can't judge.
 
-Voiceover:
-> "Seven detectors, deterministic, source-controlled. Every finding
-> has to point at specific trace events as evidence — a finding
-> without evidence is a contract violation and is rejected. Section
-> five is the unmovable rule: when data is missing, we say so. Zero
-> hallucination."
+> "Seven deterministic detectors, source-controlled. Every finding
+> must point at specific trace events as evidence — a finding without
+> a span is a contract violation. Section five is the iron rule: when
+> data is missing, we say so. Zero hallucination."
 
 ## 2:30 — 3:30 · UiPath Test Cloud integration (60s)
 
-Live demo:
-- Show Orchestrator → Processes → `agentclinic-coded-agent` 0.1.1
-- Trigger `Start now` with the same trace input
-- Watch the job complete (~30 seconds — cut if needed)
-- Open Test Manager → ACR2 → Executions → newest row
-- Click the failed Test Case Log → Override Result dialog
-- **Slow down here**: show the multi-line evidence-bound reason
-  text on screen for 4-5 seconds, let viewers read it
-- Pan to the attached `report.md` — full audit trail in Test Cloud
+Live: Orchestrator → Processes → `agentclinic-coded-agent 0.1.1` →
+Start now with golden input → job completes ~30s (cut to fit). Open
+Test Manager → ACR2 → newest Execution row → Failed log → Override
+Result dialog. **Hold here 5 seconds** — let the multi-line evidence-
+bound reason text breathe on screen. Pan to attached `report.md`.
 
-Voiceover:
 > "Same agent, this time triggered from Automation Cloud, runs the
 > exact same pipeline as the Coded Agent runtime, writes the result
-> straight into Test Manager. Reusable Test Case per pattern; one
-> Test Set, one Execution per publish; a per-pattern log with the
-> evidence-bound reason visible right in the dialog the reviewer
-> already uses; the full markdown report attached. Quality is no
-> longer a late-stage checkpoint."
+> straight into Test Manager. Reusable Test Case per pattern; per-
+> pattern log with the evidence-bound reason visible right in the
+> dialog the reviewer already uses; full markdown report attached.
+> Quality isn't a late-stage checkpoint anymore."
 
-## 3:30 — 4:15 · The four roles (45s)
+## 3:30 — 4:15 · Four roles (45s)
 
-Quick slide showing the architecture:
+Slide:
 
 ```
-JUDGE     deterministic rule engine — runs without an LLM
-COACH     LLM, bounded — translate findings, forbidden to judge
-RECORDER  UiPath Test Cloud — execution + log + attachment
-ORCHESTRATOR  UiPath — Process + AI Trust Layer + Orchestrator
+👨‍⚖️ JUDGE        deterministic rule engine — runs without an LLM
+🏃 COACH        LLM, bounded — translate findings, forbidden to judge
+📋 RECORDER     UiPath Test Cloud — execution + log + attachment
+🎼 ORCHESTRATOR  UiPath — Process + AI Trust Layer audit
 ```
 
-Voiceover:
-> "Four roles, no overlap. The judge is deterministic — the LLM
-> can't revise the verdict. The coach rides UiPath's AgentHub LLM
-> Gateway, so the LLM call stays inside the AI Trust Layer for
-> audit and PII redaction. Test Cloud is the system of record.
-> UiPath is the orchestration and governance layer that ties
-> everything together. That's the Track 3 framing — quality as a
-> continuous, governed capability across the enterprise."
+> "Four roles, no overlap. Judge is deterministic — the LLM can't
+> revise the verdict. Coach rides UiPath's AgentHub LLM Gateway, so
+> every LLM call stays inside the AI Trust Layer for audit and PII
+> redaction. Test Cloud is the system of record. UiPath is the
+> orchestration and governance layer. That's the Track 3 framing —
+> quality as a continuous, governed capability."
 
 ## 4:15 — 4:45 · Close (30s)
 
-Open the GitHub repo page; pan over: README → LICENSE → docs/
-ERROR_MATRIX → 16 commits in `git log` (each one Claude-Code-
-authored).
+Open GitHub repo page; pan over CI badge (green), README,
+`docs/ERROR_MATRIX.md`, `git log --oneline` showing 25+ commits each
+authored by Claude Code.
 
-Voiceover:
-> "The whole codebase was written by Claude Code over eleven days
-> in pair-programming with a human driver, sixteen commits, every
-> commit on this screen. Repository is public, MIT licensed, full
-> setup instructions, production error matrix documented. Drop a
+> "The whole codebase was written by Claude Code over eleven days,
+> twenty-five commits, every one visible in the git log. Repository
+> public, MIT licensed, CI green, error matrix documented. Drop a
 > trace in, get an audit trail. Thank you."
 
-End frame: GitHub URL + Track 3 hashtag, hold for 2 seconds.
-
----
+End frame: GitHub URL + `Track 3 · AgentHack 2026`, hold 2 seconds.
 
 ## Recording checklist
 
-- [ ] Screen at 1080p minimum
-- [ ] Voiceover separate audio track if possible (cleaner mix)
-- [ ] No copyrighted music — silence or a CC0 ambient loop
-- [ ] Trim total to **under 5:00** (Devpost rule, hard cap)
-- [ ] Upload to YouTube as Public or Unlisted (rules require
-      "publicly visible")
-- [ ] Test the link in a private browser window before submitting
+- [ ] 1080p screen capture minimum
+- [ ] Separate audio track if possible (cleaner mix)
+- [ ] No copyrighted music — silence or CC0 loop
+- [ ] **Trim total to under 5:00** — Devpost hard cap, judges aren't
+      obligated to watch past it
+- [ ] Upload to YouTube as Public or Unlisted ("publicly visible"
+      per rules)
+- [ ] Test the link in a private browser before pasting into Devpost
