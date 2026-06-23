@@ -1,5 +1,7 @@
 # AgentClinic
 
+![AgentClinic — From Golden Trace to Audit-Ready Result](docs/agentclinic-cover.png)
+
 [![CI](https://github.com/rainingsnow0914tw-ship-it/agentclinic/actions/workflows/ci.yml/badge.svg)](https://github.com/rainingsnow0914tw-ship-it/agentclinic/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
