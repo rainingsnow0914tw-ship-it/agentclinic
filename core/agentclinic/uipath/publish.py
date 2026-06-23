@@ -108,10 +108,16 @@ def publish_report(report: dict, *,
     )
     execution_id = execution["id"]
 
-    # 6) TestCaseLog per testcase, then override result based on findings
+    # 6) TestCaseLog per testcase, then override result based on findings.
+    # The server occasionally writes duplicate testcaselog rows for the same
+    # (testCase, execution) tuple after create_testcaselog POST. UiPath UI
+    # surfaces one row from the paged endpoint -- and that's not always the
+    # row create_testcaselog's response pointed at. To guarantee the UI-
+    # visible row carries the evidence-bound reason, we override EVERY row
+    # the paged endpoint returns for this (execution, testcase).
     logs: list[dict] = []
     for pattern, tc in pattern_to_testcase.items():
-        log = client.create_testcaselog(
+        client.create_testcaselog(
             project_id, testcase_id=tc["id"],
             testexecution_id=execution_id,
             testcase_version=schema_version,
@@ -120,17 +126,29 @@ def publish_report(report: dict, *,
         fired = pattern in fired_patterns
         target_result = "Failed" if fired else "Passed"
         reason = _result_reason(pattern, fired, findings)
-        try:
-            client.override_testcaselog_result(
-                project_id, log["id"], target_result, reason)
-        except Exception as e:  # noqa: BLE001 -- one log failing to
-            # set its result shouldn't abort the whole publish; surface
-            # the log id and continue, the attachment still lands
-            log["_result_override_error"] = (
-                f"{type(e).__name__}: {e}")
-        log["_target_result"] = target_result
-        log["_pattern"] = pattern
-        logs.append(log)
+
+        ui_visible_logs = client.list_testcaselogs(
+            project_id, execution_id, testcase_id=tc["id"])
+        if not ui_visible_logs:
+            raise TestManagerError(
+                f"create_testcaselog succeeded but no log visible under "
+                f"(execution={execution_id[:8]}, testcase={tc['id'][:8]})")
+
+        for ui_log in ui_visible_logs:
+            entry = {
+                "id": ui_log["id"],
+                "pattern": pattern,
+                "result": target_result,
+                "result_override_error": None,
+            }
+            try:
+                client.override_testcaselog_result(
+                    project_id, ui_log["id"], target_result, reason)
+            except Exception as e:  # noqa: BLE001 -- one log failing to
+                # set its result shouldn't abort the whole publish; surface
+                # the log id and continue, the attachment still lands
+                entry["result_override_error"] = f"{type(e).__name__}: {e}"
+            logs.append(entry)
 
     # 7) Attachment: full markdown report on the TestExecution
     markdown = markdown_override if markdown_override is not None \
@@ -166,12 +184,7 @@ def publish_report(report: dict, *,
             "id": execution_id, "name": execution.get("name"),
             "objKey": execution.get("objKey"),
         },
-        "logs": [
-            {"id": lg["id"], "pattern": lg["_pattern"],
-             "result": lg["_target_result"],
-             "result_override_error": lg.get("_result_override_error")}
-            for lg in logs
-        ],
+        "logs": logs,
         "attachment": {
             "id": attachment["id"], "fileName": attachment["fileName"],
             "fileSize": attachment["fileSize"],

@@ -225,18 +225,40 @@ class TestManagerClient:
 
     def _fetch_log(self, project_id: str, execution_id: str,
                    testcase_id: str) -> dict:
+        # Kept for backward compatibility with create_testcaselog's fallback,
+        # but note: server sometimes creates duplicate logs per (testCase,
+        # execution); the paged endpoint may list a stale duplicate as the
+        # first entry. New callers should prefer list_testcaselogs() and
+        # iterate ALL matching rows.
+        logs = self.list_testcaselogs(project_id, execution_id, testcase_id)
+        if not logs:
+            raise TestManagerError(
+                f"created log not visible under execution {execution_id}")
+        return logs[0]
+
+    def list_testcaselogs(self, project_id: str, execution_id: str,
+                          testcase_id: str | None = None) -> list[dict]:
+        """List ALL logs under an execution; optional filter by testcase_id.
+
+        Why this exists: the server occasionally writes duplicate testcaselog
+        rows for the same (testCase, execution) tuple per POST. UiPath's UI
+        and the paged endpoint then surface one row (often the older one),
+        while create_testcaselog's POST response id may point at the other.
+        Override-result writes only land on the id you give it. To make the
+        UI-visible row carry the evidence-bound reason, call this method
+        and override every row it returns.
+        """
         r = requests.get(
             f"{self.base}/api/v2/{project_id}/testcaselogs/"
             f"testexecution/{execution_id}/paged",
             headers=self._auth_header(),
             params={"top": 200}, timeout=30,
         )
-        self._check(r, "list logs by execution")
-        for log in r.json().get("data", []):
-            if log.get("testCaseId") == testcase_id:
-                return log
-        raise TestManagerError(
-            f"created log not visible under execution {execution_id}")
+        self._check(r, "list testcaselogs by execution")
+        logs = r.json().get("data", [])
+        if testcase_id:
+            logs = [lg for lg in logs if lg.get("testCaseId") == testcase_id]
+        return logs
 
     def override_testcaselog_result(self, project_id: str, log_id: str,
                                     result: str, reason: str) -> dict:
