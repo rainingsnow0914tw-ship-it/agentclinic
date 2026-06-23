@@ -184,7 +184,7 @@ UiPath components used:
 
 **畫面:**
 - 0-12s:切 GitHub repo 頁。**慢速** 從上往下捲:badge 列(CI 綠勾、MIT、Python、UiPath、Track 3)→ tagline → Why AgentClinic 列表 → Why-not 對比表
-- 12-22s:切到開終端機,跑 `git log --oneline | head -25`,讓 commits 跑過顯示 23+ 條
+- 12-22s:切到開終端機,跑 `git log --oneline -25`(PowerShell 跨 shell 通用、不用 head),讓 commits 跑過顯示 23+ 條
 - 22-28s:End frame 靜態卡:
   ```
   github.com/rainingsnow0914tw-ship-it/agentclinic
