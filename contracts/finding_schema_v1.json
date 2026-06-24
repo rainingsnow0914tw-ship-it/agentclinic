@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "raidmeter/finding_schema_v1",
   "title": "RaidMeter Finding Contract v1",
-  "description": "每個 finding 必須可追溯到 trace evidence span。無 evidence 的 finding 不合法（曦哥：沒有 evidence span 的 coaching，全都算廢話）。",
+  "description": "每個 finding 必須可追溯到 trace evidence span。無 evidence 的 finding 不合法（production review: coaching without an evidence span is worthless）。",
   "type": "object",
   "additionalProperties": false,
   "required": ["finding_id", "pattern", "severity", "confidence", "evidence_spans", "impacted_metric", "remediation", "replay"],

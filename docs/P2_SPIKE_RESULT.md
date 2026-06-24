@@ -48,7 +48,7 @@ UI 驗證：Test Manager → Projects → ACS → Test Cases → ACS:1 → **Doc
 
 → 改走 External Application 後 200 OK。
 
-### External Application setup（司機操作步驟）
+### External Application setup
 
 1. UiPath Admin → 左 nav **External Applications** → **+ Add Application**
 2. Type = **Confidential application**

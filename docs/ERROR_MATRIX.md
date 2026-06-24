@@ -1,8 +1,8 @@
 # Error Matrix — Production-Grade Error Handling
 
-Maps the seven failure modes called out in `PRD_AgentClinic_v1.md` §7 to
-their concrete implementation sites. Each row is the actual code path,
-not a planning claim.
+Maps the seven production-grade failure modes to their concrete
+implementation sites. Each row is the actual code path, not a planning
+claim.
 
 The governing principle is **graceful degradation, never silent
 hallucination**: when a load-bearing input is missing or malformed,
@@ -77,7 +77,3 @@ stderr.
 All five live in Test Cloud project ACR2 as concrete artifacts (project
 id `a9034ddc-bbc5-0000-5d9e-0b49c3618104`); not paper claims.
 
----
-
-**Cross-reference:** `PRD_AgentClinic_v1.md` §7 (Production-grade), §13
-(Three iron rules), §11 (Risk + schedule killers).

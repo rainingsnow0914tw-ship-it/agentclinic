@@ -94,7 +94,7 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   but the deadline-based escalation is a floor — objective risk can't be
   cancelled by preference. Prevents `time_race_parallel` blind spots.
 
-## Error matrix (per 曦's production review)
+## Error matrix (per production review)
 
 | Input | Behavior |
 |---|---|
@@ -131,4 +131,4 @@ Override at runtime: `--rules path --scorecard path`, contracts dir via
   `pricing_entry_missing` gap with the model name baked in.
 - Redaction layer before anything leaves the machine.
 
-— Code 阿寶 2026-06-13 · part of UiPath AgentHack 2026 Track 3 (PRD: ../PRD_AgentClinic_v1.md)
+— Claude Code 2026-06-13 · part of UiPath AgentHack 2026 Track 3

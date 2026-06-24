@@ -12,7 +12,7 @@
 
 A pre-production clinic for AI agents. Every finding is bound to specific `trace_event_id`s as evidence — **no finding may exist without a span**. Reports land natively in UiPath Test Cloud as Test Sets / Executions / per-pattern Test Case Logs, so release gates that already use Test Cloud get agent quality for free.
 
-**[繁體中文 README](README.zh-TW.md)** *(coming)* · **[Submission text](docs/SUBMISSION.md)** · **[Error matrix](docs/ERROR_MATRIX.md)** · **[PRD](PRD_AgentClinic_v1.md)**
+**[繁體中文 README](README.zh-TW.md)** *(coming)* · **[Error matrix](docs/ERROR_MATRIX.md)**
 
 ---
 
@@ -80,7 +80,7 @@ Agent trace (JSON, schema: trace_schema_v1)
 
 **Coded Agent** (Python SDK, Function project type). No low-code agent component is used.
 
-> **PRD pivot note.** `PRD_AgentClinic_v1.md` §6.2 originally targeted a Studio Web *Orchestrator Agent* as the visible main body. During P2/P3 the Coded-Agent-inside-Function-Project binding UI was found to still be in Preview and unstable (Call activity → Function binding silently drops arguments). The project pivoted to **Coded Agent → `uipath pack/publish` → Orchestrator Process → Cloud runtime** — still a first-class Studio Web ecosystem deployment unit, but avoiding the Preview surface. This is a production-readiness call, documented as `c3-coded-agent-runtime` tag.
+> **Pivot note.** The project originally targeted a Studio Web *Orchestrator Agent* as the visible main body. During the platform spike the Coded-Agent-inside-Function-Project binding UI was found to still be in Preview and unstable (Call activity → Function binding silently drops arguments). The project pivoted to **Coded Agent → `uipath pack/publish` → Orchestrator Process → Cloud runtime** — still a first-class Studio Web ecosystem deployment unit, but avoiding the Preview surface. This is a production-readiness call, documented as `c3-coded-agent-runtime` tag.
 
 ## Track 3 alignment
 
@@ -223,8 +223,6 @@ These come from the project's RaidMeter DNA and govern every implementation deci
 2. **No single-signal verdict** — pattern detection needs multi-factor evidence.
 3. **Coach not surveillance** — engineer keeps every decision; coach translates, doesn't command.
 
-See `PRD_AgentClinic_v1.md` §13.
-
 ## Coding agent · Claude Code (AgentHack +2 bonus)
 
 **Every line of source, every commit message, every documentation file in this repository was written by Claude Code** in a long-running pair-programming session with the project driver. 20+ commits across eleven days; selected milestones (full log on GitHub):
@@ -248,11 +246,11 @@ The human role was **driver / domain oracle**: framing the problem space, vettin
 
 That back-and-forth — Claude proposing, driver correcting, both updating the project memory of what works — is the actual collaboration pattern. Not "snippet suggestions," but substantive integration where Claude Code produced and committed the complete working solution.
 
-Investigative scripts and docs are also Claude-Code-authored: `docs/P2_SPIKE_RESULT.md` (the forensic write-up of how the Test Manager API was reverse-engineered from SDK source), `scripts/probe_*.py` (the five debug scripts that surfaced the (logId, currentResult) unique constraint), and the three iron rules in PRD §13.
+Investigative scripts and docs are also Claude-Code-authored: `docs/P2_SPIKE_RESULT.md` (the forensic write-up of how the Test Manager API was reverse-engineered from SDK source), `scripts/probe_*.py` (the debug scripts that surfaced the (logId, currentResult) unique constraint), and the three iron rules listed above.
 
 ## Production error handling
 
-The seven failure modes called out in PRD §7 — broken JSON / unsupported schema / missing fields / LLM timeout / duplicate writes / partial publish failure / golden suite crash — each map to a concrete implementation site with line numbers in **[`docs/ERROR_MATRIX.md`](docs/ERROR_MATRIX.md)**.
+The seven production-grade failure modes — broken JSON / unsupported schema / missing fields / LLM timeout / duplicate writes / partial publish failure / golden suite crash — each map to a concrete implementation site with line numbers in **[`docs/ERROR_MATRIX.md`](docs/ERROR_MATRIX.md)**.
 
 Exit-code contract:
 
@@ -295,10 +293,10 @@ You need all three. The setup section above walks through it; `scripts/d_assign_
 
 ## Acknowledgements
 
-- **Driver:** 司機先生 — domain framing, GUI actions, the hand-raised protocol that saved the project from burning the API window.
+- **Driver:** project driver — domain framing, GUI actions, the hand-raised protocol that saved the project from burning the API window.
 - **Product lead:** Chloe Kao — vision, voice, and the three iron rules.
-- **Platform intelligence:** Percy (Perplexity) — UiPath ecosystem reconnaissance, hackathon rule interpretation.
-- **Production architecture review:** 曦 (GPT-5.5) — the 4-roles-no-overlap discipline, the 17-day milestone plan, the Evidence Contract framing.
+- **Platform intelligence:** Perplexity AI — UiPath ecosystem reconnaissance, hackathon rule interpretation.
+- **Production architecture review:** GPT-5.5 — the 4-roles-no-overlap discipline, the 17-day milestone plan, the Evidence Contract framing.
 - **Code & docs:** [Claude Code](https://claude.com/claude-code) (Anthropic) — every commit, every schema, every page of this repository.
 
 ## License

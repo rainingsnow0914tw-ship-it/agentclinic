@@ -1,6 +1,6 @@
 # RaidMeter — Evidence Contract v1（產品脊椎）
 
-> 曦哥審查定調：「凍結一份 versioned Evidence Contract」是整個 production-grade RaidMeter 的脊椎。
+> Production review established that freezing a versioned Evidence Contract is the spine of production-grade RaidMeter.
 > **守住它 = 有機會打 Track 3；守不住 = 變成「AI 幫我寫測試評論」的廉價作品。**
 
 ## 一條鏈
