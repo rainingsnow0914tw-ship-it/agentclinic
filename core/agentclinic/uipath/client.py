@@ -5,6 +5,7 @@ Mirrors the four endpoints the 2026-06-13 spike walked through, plus
 a new project per analyze run)."""
 from __future__ import annotations
 
+import time
 from pathlib import Path
 
 import requests
@@ -237,7 +238,9 @@ class TestManagerClient:
         return logs[0]
 
     def list_testcaselogs(self, project_id: str, execution_id: str,
-                          testcase_id: str | None = None) -> list[dict]:
+                          testcase_id: str | None = None,
+                          retries: int = 0,
+                          retry_delay: float = 0.2) -> list[dict]:
         """List ALL logs under an execution; optional filter by testcase_id.
 
         Why this exists: the server occasionally writes duplicate testcaselog
@@ -247,17 +250,31 @@ class TestManagerClient:
         Override-result writes only land on the id you give it. To make the
         UI-visible row carry the evidence-bound reason, call this method
         and override every row it returns.
+
+        retries: how many extra GETs to attempt if the first returns []
+        (after a filter). The paged endpoint has an eventual-consistency
+        window measured in hundreds of ms: a POST to /testcaselogs returns
+        201 with the new row, but a GET on the paged endpoint moments later
+        can still see the pre-POST state. Fast (Cloud) runtimes hit this
+        race window; human-speed CLI runs never do. Pass retries>0 from
+        post-create call sites.
         """
-        r = requests.get(
-            f"{self.base}/api/v2/{project_id}/testcaselogs/"
-            f"testexecution/{execution_id}/paged",
-            headers=self._auth_header(),
-            params={"top": 200}, timeout=30,
-        )
-        self._check(r, "list testcaselogs by execution")
-        logs = r.json().get("data", [])
-        if testcase_id:
-            logs = [lg for lg in logs if lg.get("testCaseId") == testcase_id]
+        attempts = retries + 1
+        logs: list[dict] = []
+        for i in range(attempts):
+            r = requests.get(
+                f"{self.base}/api/v2/{project_id}/testcaselogs/"
+                f"testexecution/{execution_id}/paged",
+                headers=self._auth_header(),
+                params={"top": 200}, timeout=30,
+            )
+            self._check(r, "list testcaselogs by execution")
+            logs = r.json().get("data", [])
+            if testcase_id:
+                logs = [lg for lg in logs if lg.get("testCaseId") == testcase_id]
+            if logs or i == attempts - 1:
+                return logs
+            time.sleep(retry_delay)
         return logs
 
     def override_testcaselog_result(self, project_id: str, log_id: str,

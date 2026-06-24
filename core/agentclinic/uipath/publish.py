@@ -18,6 +18,7 @@ with evidence; the report.md attachment is the run's audit trail."""
 from __future__ import annotations
 
 import tempfile
+import time
 from pathlib import Path
 
 from ..report import to_markdown
@@ -109,15 +110,31 @@ def publish_report(report: dict, *,
     execution_id = execution["id"]
 
     # 6) TestCaseLog per testcase, then override result based on findings.
-    # The server occasionally writes duplicate testcaselog rows for the same
-    # (testCase, execution) tuple after create_testcaselog POST. UiPath UI
-    # surfaces one row from the paged endpoint -- and that's not always the
-    # row create_testcaselog's response pointed at. To guarantee the UI-
-    # visible row carries the evidence-bound reason, we override EVERY row
-    # the paged endpoint returns for this (execution, testcase).
+    #
+    # Server quirk (reverse-engineered 2026-06-24, exec 4ab12aca + c003a2e2):
+    # Test Manager auto-increments testcaselog.runId from 0 -> 1 shortly
+    # after create_testcaselog. The POST response returns the runId=0
+    # row; the paged endpoint then filters to runId=max and surfaces only
+    # runId=1. UiPath's UI reads paged, so override writes to the POST-
+    # returned id land on a phantom row the user never sees. The runId
+    # promotion takes <~1s server-side but races against fast Cloud Coded
+    # Agent runtimes.
+    #
+    # Defense:
+    #   (1) Poll over a ~2s window collecting EVERY log id we ever observe
+    #       for (execution, testcase) -- this catches runId=0 before
+    #       promotion AND runId=1 after.
+    #   (2) Always union in the POST-returned id as a baseline (in case
+    #       the paged endpoint never surfaces it at all, which we've
+    #       observed when server hasn't indexed yet).
+    #   (3) Override EVERY collected id. The phantom runId=0 row being
+    #       overridden too is harmless -- UI only reads runId=max.
+    SETTLE_WINDOW_S = 2.0
+    POLL_INTERVAL_S = 0.3
+
     logs: list[dict] = []
     for pattern, tc in pattern_to_testcase.items():
-        client.create_testcaselog(
+        created_log = client.create_testcaselog(
             project_id, testcase_id=tc["id"],
             testexecution_id=execution_id,
             testcase_version=schema_version,
@@ -127,23 +144,38 @@ def publish_report(report: dict, *,
         target_result = "Failed" if fired else "Passed"
         reason = _result_reason(pattern, fired, findings)
 
-        ui_visible_logs = client.list_testcaselogs(
-            project_id, execution_id, testcase_id=tc["id"])
-        if not ui_visible_logs:
+        seen_ids: set[str] = set()
+        created_id = (created_log or {}).get("id")
+        if created_id:
+            seen_ids.add(created_id)
+
+        deadline = time.monotonic() + SETTLE_WINDOW_S
+        while True:
+            for ui_log in client.list_testcaselogs(
+                    project_id, execution_id, testcase_id=tc["id"]):
+                lid = ui_log.get("id")
+                if lid:
+                    seen_ids.add(lid)
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(POLL_INTERVAL_S)
+
+        if not seen_ids:
             raise TestManagerError(
-                f"create_testcaselog succeeded but no log visible under "
+                f"create_testcaselog returned no id AND paged list stayed "
+                f"empty for {SETTLE_WINDOW_S}s under "
                 f"(execution={execution_id[:8]}, testcase={tc['id'][:8]})")
 
-        for ui_log in ui_visible_logs:
+        for log_id in sorted(seen_ids):
             entry = {
-                "id": ui_log["id"],
+                "id": log_id,
                 "pattern": pattern,
                 "result": target_result,
                 "result_override_error": None,
             }
             try:
                 client.override_testcaselog_result(
-                    project_id, ui_log["id"], target_result, reason)
+                    project_id, log_id, target_result, reason)
             except Exception as e:  # noqa: BLE001 -- one log failing to
                 # set its result shouldn't abort the whole publish; surface
                 # the log id and continue, the attachment still lands
